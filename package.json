@@ -1,0 +1,55 @@
+{
+  "name": "lottie-to-gif",
+  "version": "1.0.0",
+  "description": "Convert Lottie JSON animations to GIF format",
+  "main": "dist/index.js",
+  "bin": {
+    "lottie-to-gif": "bin/lottie-to-gif"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration",
+    "coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "lottie",
+    "gif",
+    "animation",
+    "converter",
+    "bodymovin",
+    "lottie-web"
+  ],
+  "author": "Marcio Rodrigues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marciorodrigues/lottie-tools.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "gif-encoder-2": "^1.0.5",
+    "ora": "^9.0.0",
+    "puppeteer": "^24.28.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3"
+  }
+}
