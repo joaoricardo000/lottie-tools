@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+
+/**
+ * Lottie to GIF Converter
+ * Executable entry point
+ */
+
+require('../dist/cli.js');
