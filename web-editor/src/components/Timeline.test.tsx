@@ -16,13 +16,15 @@ describe('Timeline', () => {
         duration: 5,
         currentTime: 0,
         isPlaying: false,
+        layers: [],
       },
     });
   });
 
   it('should render playback controls', () => {
     render(<Timeline />);
-    expect(screen.getByRole('button')).toBeInTheDocument();
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.length).toBeGreaterThanOrEqual(5); // At least 5 control buttons
   });
 
   it('should display play icon when not playing', () => {
@@ -55,7 +57,7 @@ describe('Timeline', () => {
     const user = userEvent.setup();
     render(<Timeline />);
 
-    const button = screen.getByRole('button');
+    const button = screen.getByLabelText(/play/i);
     await user.click(button);
 
     expect(useStore.getState().project?.isPlaying).toBe(true);
@@ -81,5 +83,293 @@ describe('Timeline', () => {
 
     // The slider allows interaction, value changes should work
     expect(slider).toHaveAttribute('type', 'range');
+  });
+
+  describe('Enhanced Controls', () => {
+    it('should render stop button', () => {
+      render(<Timeline />);
+      expect(screen.getByLabelText(/stop/i)).toBeInTheDocument();
+    });
+
+    it('should render loop toggle', () => {
+      render(<Timeline />);
+      expect(screen.getByLabelText(/loop/i)).toBeInTheDocument();
+    });
+
+    it('should render frame step buttons', () => {
+      render(<Timeline />);
+      expect(screen.getByLabelText(/step backward/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/step forward/i)).toBeInTheDocument();
+    });
+
+    it('should stop playback and reset time on stop button click', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 2.5,
+          isPlaying: true,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      const stopButton = screen.getByLabelText(/stop/i);
+      await user.click(stopButton);
+
+      expect(useStore.getState().project?.isPlaying).toBe(false);
+      expect(useStore.getState().project?.currentTime).toBe(0);
+    });
+
+    it('should display FPS', () => {
+      render(<Timeline />);
+      expect(screen.getByText(/30.*fps/i)).toBeInTheDocument();
+    });
+
+    it('should toggle loop on loop button click', async () => {
+      const user = userEvent.setup();
+      render(<Timeline />);
+
+      const loopButton = screen.getByLabelText(/loop/i);
+
+      // Initial state should be not looping
+      expect(loopButton).toHaveAttribute('data-loop', 'false');
+
+      await user.click(loopButton);
+
+      // After click, should be looping
+      expect(loopButton).toHaveAttribute('data-loop', 'true');
+    });
+
+    it('should step forward one frame', async () => {
+      const user = userEvent.setup();
+      render(<Timeline />);
+
+      const stepForwardButton = screen.getByLabelText(/step forward/i);
+      const initialTime = useStore.getState().project?.currentTime || 0;
+
+      await user.click(stepForwardButton);
+
+      const newTime = useStore.getState().project?.currentTime || 0;
+      const frameDuration = 1 / 30; // 1 frame at 30 fps
+      expect(newTime).toBeCloseTo(initialTime + frameDuration, 3);
+    });
+
+    it('should step backward one frame', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 1,
+          isPlaying: false,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      const stepBackwardButton = screen.getByLabelText(/step backward/i);
+      const initialTime = useStore.getState().project?.currentTime || 0;
+
+      await user.click(stepBackwardButton);
+
+      const newTime = useStore.getState().project?.currentTime || 0;
+      const frameDuration = 1 / 30;
+      expect(newTime).toBeCloseTo(initialTime - frameDuration, 3);
+    });
+
+    it('should not step backward below zero', async () => {
+      const user = userEvent.setup();
+      render(<Timeline />);
+
+      const stepBackwardButton = screen.getByLabelText(/step backward/i);
+
+      await user.click(stepBackwardButton);
+
+      expect(useStore.getState().project?.currentTime).toBe(0);
+    });
+
+    it('should not step forward beyond duration', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 5,
+          isPlaying: false,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      const stepForwardButton = screen.getByLabelText(/step forward/i);
+
+      await user.click(stepForwardButton);
+
+      expect(useStore.getState().project?.currentTime).toBe(5);
+    });
+  });
+
+  describe('Playback Integration', () => {
+    it('should update time continuously when playing', () => {
+      render(<Timeline />);
+
+      // Component should integrate with PlaybackEngine
+      expect(screen.getByText(/0\.00s \/ 5\.00s/)).toBeInTheDocument();
+    });
+
+    it('should pause when play button is clicked while playing', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 1,
+          isPlaying: true,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      const playButton = screen.getByLabelText(/pause/i);
+      await user.click(playButton);
+
+      expect(useStore.getState().project?.isPlaying).toBe(false);
+    });
+
+    it('should display current frame number', () => {
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 1,
+          isPlaying: false,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      // At 1 second with 30 fps, frame should be 30
+      expect(screen.getByText(/frame.*30/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Keyboard Shortcuts', () => {
+    it('should toggle playback on spacebar', async () => {
+      const user = userEvent.setup();
+      render(<Timeline />);
+
+      await user.keyboard(' ');
+
+      expect(useStore.getState().project?.isPlaying).toBe(true);
+
+      await user.keyboard(' ');
+
+      expect(useStore.getState().project?.isPlaying).toBe(false);
+    });
+
+    it('should step forward on ArrowRight', async () => {
+      const user = userEvent.setup();
+      render(<Timeline />);
+
+      const initialTime = useStore.getState().project?.currentTime || 0;
+
+      await user.keyboard('{ArrowRight}');
+
+      const newTime = useStore.getState().project?.currentTime || 0;
+      const frameDuration = 1 / 30;
+      expect(newTime).toBeCloseTo(initialTime + frameDuration, 3);
+    });
+
+    it('should step backward on ArrowLeft', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 1,
+          isPlaying: false,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      const initialTime = useStore.getState().project?.currentTime || 0;
+
+      await user.keyboard('{ArrowLeft}');
+
+      const newTime = useStore.getState().project?.currentTime || 0;
+      const frameDuration = 1 / 30;
+      expect(newTime).toBeCloseTo(initialTime - frameDuration, 3);
+    });
+
+    it('should jump to start on Home', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 2.5,
+          isPlaying: false,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      await user.keyboard('{Home}');
+
+      expect(useStore.getState().project?.currentTime).toBe(0);
+    });
+
+    it('should jump to end on End', async () => {
+      const user = userEvent.setup();
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          currentTime: 0,
+          isPlaying: false,
+          layers: [],
+        },
+      });
+
+      render(<Timeline />);
+
+      await user.keyboard('{End}');
+
+      expect(useStore.getState().project?.currentTime).toBe(5);
+    });
   });
 });

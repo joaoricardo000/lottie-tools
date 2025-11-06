@@ -28,10 +28,28 @@
   background: #505050;
 }
 
+.timeline-controls button.active {
+  background: #4a9eff;
+  color: white;
+}
+
 .timeline-time {
   color: #999;
   font-size: 0.875rem;
   font-family: 'Courier New', monospace;
+}
+
+.timeline-frame {
+  color: #999;
+  font-size: 0.875rem;
+  font-family: 'Courier New', monospace;
+}
+
+.timeline-fps {
+  color: #999;
+  font-size: 0.875rem;
+  font-family: 'Courier New', monospace;
+  margin-left: auto;
 }
 
 .timeline-scrubber {
