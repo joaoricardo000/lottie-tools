@@ -1,0 +1,31 @@
+.canvas-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  padding: 2rem;
+  overflow: auto;
+}
+
+.canvas-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.canvas {
+  display: block;
+  background: white;
+  border: 1px solid #404040;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.canvas-info {
+  position: absolute;
+  bottom: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #999;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}

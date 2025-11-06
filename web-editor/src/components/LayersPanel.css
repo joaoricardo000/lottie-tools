@@ -1,0 +1,13 @@
+.layers-panel {
+  width: 280px;
+  background: #252525;
+  border-right: 1px solid #404040;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.layers-content {
+  padding: 1rem;
+  flex: 1;
+}
