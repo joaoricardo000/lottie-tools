@@ -32,7 +32,7 @@ interface Store {
   setIsPlaying: (playing: boolean) => void;
   toggleLayerVisibility: (layerId: string) => void;
   toggleLayerLock: (layerId: string) => void;
-  selectLayer: (layerId: string) => void;
+  selectLayer: (layerId: string | undefined) => void;
 
   // Keyframe actions
   addKeyframe: (layerId: string, property: AnimatableProperty, value: number) => void;

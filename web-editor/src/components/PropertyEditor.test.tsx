@@ -312,7 +312,7 @@ describe('PropertyEditor', () => {
     it('should show current opacity value', () => {
       render(<PropertyEditor />);
       const opacityInput = screen.getByRole('spinbutton', { name: /opacity/i }) as HTMLInputElement;
-      expect(opacityInput.value).toBe('1');
+      expect(opacityInput.value).toBe('100');
     });
 
     it('should update opacity when input changes', async () => {
@@ -321,7 +321,7 @@ describe('PropertyEditor', () => {
 
       const opacityInput = screen.getByRole('spinbutton', { name: /opacity/i });
       await user.clear(opacityInput);
-      await user.type(opacityInput, '0.5');
+      await user.type(opacityInput, '50');
 
       const state = useStore.getState();
       const layer = state.project?.layers.find(l => l.id === 'layer-1');
@@ -375,8 +375,8 @@ describe('PropertyEditor', () => {
 
       render(<PropertyEditor />);
       const opacityInput = screen.getByRole('spinbutton', { name: /opacity/i }) as HTMLInputElement;
-      // At time=1, halfway between 0 and 2, opacity should be 0.5
-      expect(Number(opacityInput.value)).toBeCloseTo(0.5, 1);
+      // At time=1, halfway between 0 and 2, opacity should be 50% (0.5 in decimal)
+      expect(Number(opacityInput.value)).toBeCloseTo(50, 0);
     });
   });
 });

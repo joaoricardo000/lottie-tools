@@ -14,7 +14,9 @@ export function PropertyEditor() {
   const [rotation, setRotation] = useState(0);
   const [scaleX, setScaleX] = useState(1);
   const [scaleY, setScaleY] = useState(1);
-  const [opacity, setOpacity] = useState(1);
+  const [opacity, setOpacity] = useState(100); // Store as percentage 0-100
+  const [fill, setFill] = useState('#ffffff');
+  const [stroke, setStroke] = useState('#000000');
 
   const selectedLayer = project?.layers.find(
     (layer) => layer.id === project.selectedLayerId
@@ -70,14 +72,20 @@ export function PropertyEditor() {
       setScaleY(selectedLayer.element.transform.scaleY);
     }
 
-    // Opacity
+    // Opacity (convert from 0-1 to 0-100 for display)
     const opacityKeyframes = getKeyframesForLayer(selectedLayer.id, 'opacity');
     if (opacityKeyframes.length > 0) {
       const interpolatedOpacity = getValueAtTime(opacityKeyframes, project.currentTime);
-      setOpacity(interpolatedOpacity);
+      setOpacity(Math.round(interpolatedOpacity * 100));
     } else {
-      setOpacity(selectedLayer.element.style.opacity ?? 1);
+      setOpacity(Math.round((selectedLayer.element.style.opacity ?? 1) * 100));
     }
+
+    // Fill and Stroke colors (handle 'none' case)
+    const fillColor = selectedLayer.element.style.fill;
+    const strokeColor = selectedLayer.element.style.stroke;
+    setFill(fillColor && fillColor !== 'none' ? fillColor : '#ffffff');
+    setStroke(strokeColor && strokeColor !== 'none' ? strokeColor : '#000000');
   }, [
     selectedLayer,
     project?.currentTime,
@@ -182,8 +190,11 @@ export function PropertyEditor() {
     }
   };
 
-  const handleOpacityChange = (value: number) => {
+  const handleOpacityChange = (percentageValue: number) => {
     if (!selectedLayer || !project) return;
+
+    // Convert percentage (0-100) to decimal (0-1)
+    const decimalValue = percentageValue / 100;
 
     const updatedLayers = project.layers.map((layer) => {
       if (layer.id === selectedLayer.id) {
@@ -193,7 +204,7 @@ export function PropertyEditor() {
             ...layer.element,
             style: {
               ...layer.element.style,
-              opacity: value,
+              opacity: decimalValue,
             },
           },
         };
@@ -208,7 +219,65 @@ export function PropertyEditor() {
       },
     });
 
-    setOpacity(value);
+    setOpacity(percentageValue);
+  };
+
+  const handleFillChange = (color: string) => {
+    if (!selectedLayer || !project) return;
+
+    const updatedLayers = project.layers.map((layer) => {
+      if (layer.id === selectedLayer.id) {
+        return {
+          ...layer,
+          element: {
+            ...layer.element,
+            style: {
+              ...layer.element.style,
+              fill: color,
+            },
+          },
+        };
+      }
+      return layer;
+    });
+
+    useStore.setState({
+      project: {
+        ...project,
+        layers: updatedLayers,
+      },
+    });
+
+    setFill(color);
+  };
+
+  const handleStrokeChange = (color: string) => {
+    if (!selectedLayer || !project) return;
+
+    const updatedLayers = project.layers.map((layer) => {
+      if (layer.id === selectedLayer.id) {
+        return {
+          ...layer,
+          element: {
+            ...layer.element,
+            style: {
+              ...layer.element.style,
+              stroke: color,
+            },
+          },
+        };
+      }
+      return layer;
+    });
+
+    useStore.setState({
+      project: {
+        ...project,
+        layers: updatedLayers,
+      },
+    });
+
+    setStroke(color);
   };
 
   const handleAddKeyframe = (property: AnimatableProperty, value: number) => {
@@ -343,18 +412,44 @@ export function PropertyEditor() {
       <div className="property-editor-section">
         <h4>Appearance</h4>
         <div className="property-row">
-          <label htmlFor="opacity">Opacity</label>
+          <label htmlFor="fill">Fill</label>
+          <input
+            id="fill"
+            type="color"
+            value={fill}
+            onChange={(e) => handleFillChange(e.target.value)}
+          />
+          <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
+            {fill}
+          </span>
+        </div>
+
+        <div className="property-row">
+          <label htmlFor="stroke">Stroke</label>
+          <input
+            id="stroke"
+            type="color"
+            value={stroke}
+            onChange={(e) => handleStrokeChange(e.target.value)}
+          />
+          <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
+            {stroke}
+          </span>
+        </div>
+
+        <div className="property-row">
+          <label htmlFor="opacity">Opacity (%)</label>
           <input
             id="opacity"
             type="number"
-            step="0.1"
+            step="1"
             min="0"
-            max="1"
+            max="100"
             value={opacity}
             onChange={(e) => handleOpacityChange(Number(e.target.value))}
           />
           <button
-            onClick={() => handleAddKeyframe('opacity', opacity)}
+            onClick={() => handleAddKeyframe('opacity', opacity / 100)}
             aria-label={`Add keyframe for opacity`}
             data-has-keyframe={hasKeyframeAtCurrentTime('opacity')}
             className={hasKeyframeAtCurrentTime('opacity') ? 'has-keyframe' : ''}
