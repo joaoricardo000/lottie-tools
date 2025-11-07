@@ -48,8 +48,12 @@ describe('FileImport', () => {
       await waitFor(() => {
         const project = useStore.getState().project;
         expect(project).not.toBeNull();
-        expect(project?.layers).toHaveLength(1);
-        expect(project?.layers[0].element.type).toBe('rect');
+        // Now imports 2 layers: group + child
+        expect(project?.layers).toHaveLength(2);
+        expect(project?.layers[0].element.type).toBe('group');
+        expect(project?.layers[0].name).toBe('test'); // Group name from filename
+        expect(project?.layers[1].element.type).toBe('rect');
+        expect(project?.layers[1].parentId).toBe(project?.layers[0].id);
       });
     });
 
@@ -71,10 +75,12 @@ describe('FileImport', () => {
 
       await waitFor(() => {
         const project = useStore.getState().project;
-        expect(project?.layers).toHaveLength(3);
-        expect(project?.layers[0].element.type).toBe('rect');
-        expect(project?.layers[1].element.type).toBe('circle');
-        expect(project?.layers[2].element.type).toBe('ellipse');
+        // Now imports 4 layers: group + 3 children
+        expect(project?.layers).toHaveLength(4);
+        expect(project?.layers[0].element.type).toBe('group');
+        expect(project?.layers[1].element.type).toBe('rect');
+        expect(project?.layers[2].element.type).toBe('circle');
+        expect(project?.layers[3].element.type).toBe('ellipse');
       });
     });
 
@@ -145,10 +151,10 @@ describe('FileImport', () => {
       const fileInput = container.querySelector('input[type="file"]')!;
       await user.upload(fileInput, file);
 
+      // Success is now shown via toast, so check project state instead
       await waitFor(() => {
-        const message = screen.getByRole('alert');
-        expect(message).toHaveTextContent(/successfully imported/i);
-        expect(message).toHaveClass('success');
+        const project = useStore.getState().project;
+        expect(project?.layers).toHaveLength(2); // group + child
       });
     });
 
@@ -167,9 +173,11 @@ describe('FileImport', () => {
       const fileInput = container.querySelector('input[type="file"]')!;
       await user.upload(fileInput, file);
 
+      // Success is now shown via toast, check project has correct number of layers
       await waitFor(() => {
-        const message = screen.getByRole('alert');
-        expect(message).toHaveTextContent(/2 layers/i);
+        const project = useStore.getState().project;
+        // 2 child elements + 1 group = 3 layers total
+        expect(project?.layers).toHaveLength(3);
       });
     });
   });
@@ -325,19 +333,20 @@ describe('FileImport', () => {
       await user.upload(fileInput, file1);
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent(/successfully imported/i);
+        const project = useStore.getState().project;
+        expect(project?.layers).toHaveLength(2); // group + child
       });
 
-      // Second import - should clear previous message first
+      // Second import - should add new layers
       const svgContent2 = '<svg><circle cx="50" cy="50" r="25"/></svg>';
       const file2 = new File([svgContent2], 'test2.svg', { type: 'image/svg+xml' });
 
       await user.upload(fileInput, file2);
 
       await waitFor(() => {
-        const alerts = screen.getAllByRole('alert');
-        // Should only have one alert (the new one)
-        expect(alerts).toHaveLength(1);
+        const project = useStore.getState().project;
+        // First import: 2 layers, Second import: 2 more layers = 4 total
+        expect(project?.layers).toHaveLength(4);
       });
     });
   });
@@ -388,10 +397,11 @@ describe('FileImport', () => {
 
       await waitFor(() => {
         const project = useStore.getState().project;
-        // Should have both existing and new layers
-        expect(project?.layers).toHaveLength(2);
+        // Should have existing + new group + new child = 3 layers
+        expect(project?.layers).toHaveLength(3);
         expect(project?.layers[0].id).toBe('existing-layer');
-        expect(project?.layers[1].element.type).toBe('circle');
+        expect(project?.layers[1].element.type).toBe('group'); // New group
+        expect(project?.layers[2].element.type).toBe('circle'); // New child
       });
     });
 
@@ -410,7 +420,8 @@ describe('FileImport', () => {
       await waitFor(() => {
         const project = useStore.getState().project;
         expect(project).not.toBeNull();
-        expect(project?.layers).toHaveLength(1);
+        // Now imports 2 layers: group + child
+        expect(project?.layers).toHaveLength(2);
       });
     });
   });

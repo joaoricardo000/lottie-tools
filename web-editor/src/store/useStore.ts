@@ -18,6 +18,7 @@ interface ProjectState {
   isPlaying: boolean;
   layers: Layer[];
   selectedLayerId?: string;
+  selectedLayerIds: string[]; // For multi-selection
   keyframes: Keyframe[]; // All keyframes in the project
 }
 
@@ -36,7 +37,11 @@ interface Store {
   toggleLayerVisibility: (layerId: string) => void;
   toggleLayerLock: (layerId: string) => void;
   selectLayer: (layerId: string | undefined) => void;
+  toggleLayerSelection: (layerId: string) => void;
+  setSelectedLayerIds: (layerIds: string[]) => void;
   renameLayer: (layerId: string, newName: string) => void;
+  deleteLayer: (layerId: string) => void;
+  deleteLayers: (layerIds: string[]) => void;
 
   // Keyframe actions
   addKeyframe: (layerId: string, property: AnimatableProperty, value: number | string, easing?: string) => void;
@@ -76,6 +81,7 @@ const defaultProject: ProjectState = {
   currentTime: 0,
   isPlaying: false,
   layers: [],
+  selectedLayerIds: [],
   keyframes: [],
 };
 
@@ -132,7 +138,38 @@ export const useStore = create<Store>((set) => ({
 
   selectLayer: (layerId) =>
     set((state) => ({
-      project: state.project ? { ...state.project, selectedLayerId: layerId } : null,
+      project: state.project ? { ...state.project, selectedLayerId: layerId, selectedLayerIds: layerId ? [layerId] : [] } : null,
+    })),
+
+  toggleLayerSelection: (layerId) =>
+    set((state) => {
+      if (!state.project) return state;
+
+      const currentSelection = state.project.selectedLayerIds || [];
+      const isSelected = currentSelection.includes(layerId);
+
+      const selectedLayerIds = isSelected
+        ? currentSelection.filter((id) => id !== layerId)
+        : [...currentSelection, layerId];
+
+      return {
+        project: {
+          ...state.project,
+          selectedLayerIds,
+          selectedLayerId: selectedLayerIds.length === 1 ? selectedLayerIds[0] : undefined,
+        },
+      };
+    }),
+
+  setSelectedLayerIds: (layerIds) =>
+    set((state) => ({
+      project: state.project
+        ? {
+            ...state.project,
+            selectedLayerIds: layerIds,
+            selectedLayerId: layerIds.length === 1 ? layerIds[0] : undefined,
+          }
+        : null,
     })),
 
   renameLayer: (layerId, newName) =>
@@ -145,6 +182,83 @@ export const useStore = create<Store>((set) => ({
 
       return {
         project: { ...state.project, layers },
+      };
+    }),
+
+  deleteLayer: (layerId) =>
+    set((state) => {
+      if (!state.project) return state;
+
+      // Find all child layers (layers with this layer as parent)
+      const childLayerIds = state.project.layers
+        .filter((layer) => layer.parentId === layerId)
+        .map((layer) => layer.id);
+
+      // Collect all layer IDs to delete (parent + children)
+      const layerIdsToDelete = [layerId, ...childLayerIds];
+
+      // Remove layer and its children from layers array
+      const layers = state.project.layers.filter((layer) => !layerIdsToDelete.includes(layer.id));
+
+      // Remove all keyframes associated with deleted layers
+      const keyframes = state.project.keyframes.filter(
+        (kf) => !layerIdsToDelete.includes((kf as any).layerId)
+      );
+
+      // Clear selection if any deleted layer was selected
+      const selectedLayerId = layerIdsToDelete.includes(state.project.selectedLayerId || '')
+        ? undefined
+        : state.project.selectedLayerId;
+
+      const selectedLayerIds = (state.project.selectedLayerIds || []).filter(
+        (id) => !layerIdsToDelete.includes(id)
+      );
+
+      return {
+        project: { ...state.project, layers, keyframes, selectedLayerId, selectedLayerIds },
+      };
+    }),
+
+  deleteLayers: (layerIds) =>
+    set((state) => {
+      if (!state.project) return state;
+
+      // Collect all layers to delete including children
+      const allLayerIdsToDelete = new Set<string>();
+
+      layerIds.forEach((layerId) => {
+        // Add the layer itself
+        allLayerIdsToDelete.add(layerId);
+
+        // Find and add all child layers
+        const childLayerIds = state.project!.layers
+          .filter((layer) => layer.parentId === layerId)
+          .map((layer) => layer.id);
+
+        childLayerIds.forEach((childId) => allLayerIdsToDelete.add(childId));
+      });
+
+      const layerIdsToDeleteArray = Array.from(allLayerIdsToDelete);
+
+      // Remove layers
+      const layers = state.project.layers.filter((layer) => !allLayerIdsToDelete.has(layer.id));
+
+      // Remove keyframes
+      const keyframes = state.project.keyframes.filter(
+        (kf) => !allLayerIdsToDelete.has((kf as any).layerId)
+      );
+
+      // Clear selection if any deleted layer was selected
+      const selectedLayerId = allLayerIdsToDelete.has(state.project.selectedLayerId || '')
+        ? undefined
+        : state.project.selectedLayerId;
+
+      const selectedLayerIds = (state.project.selectedLayerIds || []).filter(
+        (id) => !allLayerIdsToDelete.has(id)
+      );
+
+      return {
+        project: { ...state.project, layers, keyframes, selectedLayerId, selectedLayerIds },
       };
     }),
 

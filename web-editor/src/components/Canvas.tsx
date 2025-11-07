@@ -295,6 +295,9 @@ export function Canvas() {
       const layer = project.layers[i];
       if (!layer.visible) continue;
 
+      // Skip group layers (they don't render anything)
+      if (layer.element.type === 'group') continue;
+
       // Get interpolated transforms
       const xKeyframes = getKeyframesForLayer(layer.id, 'x');
       const yKeyframes = getKeyframesForLayer(layer.id, 'y');
@@ -305,6 +308,48 @@ export function Canvas() {
       const isHit = checkHit(layer.element, clickX - x, clickY - y);
 
       if (isHit) {
+        // If layer has a parent, select the parent instead (single-click behavior)
+        if (layer.parentId) {
+          selectLayer(layer.parentId);
+        } else {
+          selectLayer(layer.id);
+        }
+        return;
+      }
+    }
+
+    // If no layer was clicked, deselect
+    selectLayer(undefined);
+  };
+
+  // Handle double-click to select individual child layers
+  const handleCanvasDoubleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!project || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+
+    // Check each layer in reverse order (top to bottom)
+    for (let i = project.layers.length - 1; i >= 0; i--) {
+      const layer = project.layers[i];
+      if (!layer.visible) continue;
+
+      // Skip group layers
+      if (layer.element.type === 'group') continue;
+
+      // Get interpolated transforms
+      const xKeyframes = getKeyframesForLayer(layer.id, 'x');
+      const yKeyframes = getKeyframesForLayer(layer.id, 'y');
+      const x = xKeyframes.length > 0 ? getValueAtTime(xKeyframes, project.currentTime) : layer.element.transform.x;
+      const y = yKeyframes.length > 0 ? getValueAtTime(yKeyframes, project.currentTime) : layer.element.transform.y;
+
+      // Simple hit test (check if click is within layer bounds)
+      const isHit = checkHit(layer.element, clickX - x, clickY - y);
+
+      if (isHit) {
+        // Double-click always selects the actual layer, even if it has a parent
         selectLayer(layer.id);
         return;
       }
@@ -433,8 +478,16 @@ export function Canvas() {
     return false;
   };
 
+  // Handle clicks outside the canvas to deselect
+  const handleContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Only deselect if clicking on the container itself, not the canvas
+    if (event.target === event.currentTarget) {
+      selectLayer(undefined);
+    }
+  };
+
   return (
-    <div className="canvas-container">
+    <div className="canvas-container" onClick={handleContainerClick}>
       <div className="canvas-wrapper">
         <canvas
           ref={canvasRef}
@@ -442,6 +495,7 @@ export function Canvas() {
           width={project?.width || 800}
           height={project?.height || 600}
           onClick={handleCanvasClick}
+          onDoubleClick={handleCanvasDoubleClick}
           style={{ cursor: 'pointer' }}
         />
         <div className="canvas-info">

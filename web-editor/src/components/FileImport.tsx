@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import { parseSVG } from '../parsers/svg-parser';
 import { useStore } from '../store/useStore';
+import { toast } from 'sonner';
 import './FileImport.css';
 
-type MessageType = 'success' | 'error' | 'loading';
+type MessageType = 'error' | 'loading';
 
 interface Message {
   type: MessageType;
@@ -35,8 +36,9 @@ export function FileImport() {
       // Read file content
       const content = await readFileAsText(file);
 
-      // Parse SVG
-      const parseResult = parseSVG(content);
+      // Parse SVG with filename as group name (without extension)
+      const groupName = file.name.replace(/\.[^/.]+$/, '');
+      const parseResult = parseSVG(content, groupName);
 
       if (!parseResult.success) {
         setMessage({
@@ -81,12 +83,13 @@ export function FileImport() {
         });
       }
 
-      setMessage({
-        type: 'success',
-        text: `Successfully imported ${parseResult.layers.length} layer${
+      // Show success toast
+      toast.success(
+        `Successfully imported ${parseResult.layers.length} layer${
           parseResult.layers.length === 1 ? '' : 's'
-        }`,
-      });
+        }`
+      );
+      setMessage(null);
     } catch (error) {
       setMessage({
         type: 'error',

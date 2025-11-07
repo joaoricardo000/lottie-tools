@@ -268,8 +268,10 @@ function parseGroup(element: Element): GroupElement {
 
 /**
  * Parse SVG string to layers
+ * @param svgString - The SVG string to parse
+ * @param groupName - Optional name for grouping all imported layers
  */
-export function parseSVG(svgString: string): SVGParseResult {
+export function parseSVG(svgString: string, groupName?: string): SVGParseResult {
   try {
     // Parse SVG using DOMParser
     const parser = new DOMParser();
@@ -323,11 +325,11 @@ export function parseSVG(svgString: string): SVGParseResult {
     }
 
     // Parse all child elements
-    const layers: Layer[] = [];
+    const childLayers: Layer[] = [];
     Array.from(svgElement.children).forEach((child) => {
       const element = parseElement(child as Element);
       if (element) {
-        layers.push({
+        childLayers.push({
           id: generateId(),
           name: element.name,
           element,
@@ -336,6 +338,37 @@ export function parseSVG(svgString: string): SVGParseResult {
         });
       }
     });
+
+    // If groupName is provided, create a parent group layer
+    let layers: Layer[];
+    if (groupName && childLayers.length > 0) {
+      const groupId = generateId();
+      const groupLayer: Layer = {
+        id: groupId,
+        name: groupName,
+        element: {
+          id: generateId(),
+          type: 'group',
+          name: groupName,
+          transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+          style: {},
+          children: [],
+        },
+        visible: true,
+        locked: false,
+      };
+
+      // Set parentId on all child layers
+      const childLayersWithParent = childLayers.map((layer) => ({
+        ...layer,
+        parentId: groupId,
+      }));
+
+      // Return group layer first, then child layers
+      layers = [groupLayer, ...childLayersWithParent];
+    } else {
+      layers = childLayers;
+    }
 
     return {
       success: true,

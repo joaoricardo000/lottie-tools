@@ -4,6 +4,7 @@ import { Canvas } from './components/Canvas';
 import { Timeline } from './components/Timeline';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { LayersPanel } from './components/LayersPanel';
+import { Toaster } from 'sonner';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         </div>
         <PropertiesPanel />
       </div>
+      <Toaster />
     </div>
   );
 }

@@ -645,4 +645,722 @@ describe('useStore', () => {
       expect(keyframes).toHaveLength(0);
     });
   });
+
+  describe('deleteLayer', () => {
+    beforeEach(() => {
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          loop: true,
+          currentTime: 0,
+          isPlaying: false,
+          selectedLayerId: 'layer1',
+          layers: [
+            {
+              id: 'layer1',
+              name: 'Layer 1',
+              element: {
+                id: 'rect1',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'layer2',
+              name: 'Layer 2',
+              element: {
+                id: 'circle1',
+                type: 'circle',
+                name: 'Circle',
+                cx: 50,
+                cy: 50,
+                r: 25,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+          ],
+          keyframes: [
+            {
+              id: 'kf-1',
+              time: 0,
+              property: 'x',
+              value: 100,
+              easing: 'linear',
+              layerId: 'layer1',
+            } as any,
+            {
+              id: 'kf-2',
+              time: 1,
+              property: 'y',
+              value: 200,
+              easing: 'linear',
+              layerId: 'layer1',
+            } as any,
+            {
+              id: 'kf-3',
+              time: 0,
+              property: 'x',
+              value: 150,
+              easing: 'linear',
+              layerId: 'layer2',
+            } as any,
+          ],
+        },
+      });
+    });
+
+    it('should delete layer by id', () => {
+      useStore.getState().deleteLayer('layer1');
+
+      const layers = useStore.getState().project?.layers || [];
+      expect(layers).toHaveLength(1);
+      expect(layers[0].id).toBe('layer2');
+    });
+
+    it('should delete all keyframes associated with the layer', () => {
+      useStore.getState().deleteLayer('layer1');
+
+      const keyframes = useStore.getState().project?.keyframes || [];
+      expect(keyframes).toHaveLength(1);
+      expect((keyframes[0] as any).layerId).toBe('layer2');
+    });
+
+    it('should clear selection if deleted layer was selected', () => {
+      useStore.getState().deleteLayer('layer1');
+
+      const selectedLayerId = useStore.getState().project?.selectedLayerId;
+      expect(selectedLayerId).toBeUndefined();
+    });
+
+    it('should not clear selection if deleted layer was not selected', () => {
+      useStore.getState().deleteLayer('layer2');
+
+      const selectedLayerId = useStore.getState().project?.selectedLayerId;
+      expect(selectedLayerId).toBe('layer1');
+    });
+
+    it('should handle deleting non-existent layer', () => {
+      useStore.getState().deleteLayer('non-existent');
+
+      const layers = useStore.getState().project?.layers || [];
+      expect(layers).toHaveLength(2);
+    });
+
+    it('should handle null project gracefully', () => {
+      useStore.setState({ project: null });
+      useStore.getState().deleteLayer('layer1');
+      expect(useStore.getState().project).toBeNull();
+    });
+
+    it('should delete child layers when deleting a group', () => {
+      // Set up a group with children
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          loop: true,
+          currentTime: 0,
+          isPlaying: false,
+          selectedLayerId: undefined,
+          layers: [
+            {
+              id: 'group1',
+              name: 'Group 1',
+              element: {
+                id: 'g1',
+                type: 'group',
+                name: 'Group',
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+                children: [],
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'child1',
+              name: 'Child 1',
+              element: {
+                id: 'rect1',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+              parentId: 'group1',
+            },
+            {
+              id: 'child2',
+              name: 'Child 2',
+              element: {
+                id: 'circle1',
+                type: 'circle',
+                name: 'Circle',
+                cx: 50,
+                cy: 50,
+                r: 25,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+              parentId: 'group1',
+            },
+            {
+              id: 'layer2',
+              name: 'Layer 2',
+              element: {
+                id: 'rect2',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+          ],
+          keyframes: [
+            {
+              id: 'kf-1',
+              time: 0,
+              property: 'x',
+              value: 100,
+              easing: 'linear',
+              layerId: 'child1',
+            } as any,
+            {
+              id: 'kf-2',
+              time: 1,
+              property: 'y',
+              value: 200,
+              easing: 'linear',
+              layerId: 'child2',
+            } as any,
+            {
+              id: 'kf-3',
+              time: 0,
+              property: 'x',
+              value: 150,
+              easing: 'linear',
+              layerId: 'layer2',
+            } as any,
+          ],
+        },
+      });
+
+      // Delete the group
+      useStore.getState().deleteLayer('group1');
+
+      const layers = useStore.getState().project?.layers || [];
+      const keyframes = useStore.getState().project?.keyframes || [];
+
+      // Should only have layer2 remaining
+      expect(layers).toHaveLength(1);
+      expect(layers[0].id).toBe('layer2');
+
+      // Should only have keyframe for layer2
+      expect(keyframes).toHaveLength(1);
+      expect((keyframes[0] as any).layerId).toBe('layer2');
+    });
+  });
+
+  describe('toggleLayerSelection', () => {
+    beforeEach(() => {
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          loop: true,
+          currentTime: 0,
+          isPlaying: false,
+          selectedLayerId: undefined,
+          selectedLayerIds: [],
+          layers: [
+            {
+              id: 'layer1',
+              name: 'Layer 1',
+              element: {
+                id: 'rect1',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'layer2',
+              name: 'Layer 2',
+              element: {
+                id: 'circle1',
+                type: 'circle',
+                name: 'Circle',
+                cx: 50,
+                cy: 50,
+                r: 25,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'layer3',
+              name: 'Layer 3',
+              element: {
+                id: 'rect2',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+          ],
+          keyframes: [],
+        },
+      });
+    });
+
+    it('should add layer to selection when not selected', () => {
+      useStore.getState().toggleLayerSelection('layer1');
+
+      const selectedLayerIds = useStore.getState().project?.selectedLayerIds || [];
+      expect(selectedLayerIds).toEqual(['layer1']);
+      expect(useStore.getState().project?.selectedLayerId).toBe('layer1');
+    });
+
+    it('should remove layer from selection when already selected', () => {
+      useStore.setState({
+        project: {
+          ...useStore.getState().project!,
+          selectedLayerIds: ['layer1', 'layer2'],
+          selectedLayerId: undefined,
+        },
+      });
+
+      useStore.getState().toggleLayerSelection('layer1');
+
+      const selectedLayerIds = useStore.getState().project?.selectedLayerIds || [];
+      expect(selectedLayerIds).toEqual(['layer2']);
+      expect(useStore.getState().project?.selectedLayerId).toBe('layer2');
+    });
+
+    it('should add multiple layers to selection', () => {
+      useStore.getState().toggleLayerSelection('layer1');
+      useStore.getState().toggleLayerSelection('layer2');
+      useStore.getState().toggleLayerSelection('layer3');
+
+      const selectedLayerIds = useStore.getState().project?.selectedLayerIds || [];
+      expect(selectedLayerIds).toEqual(['layer1', 'layer2', 'layer3']);
+      expect(useStore.getState().project?.selectedLayerId).toBeUndefined();
+    });
+
+    it('should set selectedLayerId to undefined when multiple layers selected', () => {
+      useStore.getState().toggleLayerSelection('layer1');
+      useStore.getState().toggleLayerSelection('layer2');
+
+      expect(useStore.getState().project?.selectedLayerId).toBeUndefined();
+    });
+
+    it('should handle null project gracefully', () => {
+      useStore.setState({ project: null });
+      useStore.getState().toggleLayerSelection('layer1');
+      expect(useStore.getState().project).toBeNull();
+    });
+  });
+
+  describe('setSelectedLayerIds', () => {
+    beforeEach(() => {
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          loop: true,
+          currentTime: 0,
+          isPlaying: false,
+          selectedLayerId: undefined,
+          selectedLayerIds: [],
+          layers: [
+            {
+              id: 'layer1',
+              name: 'Layer 1',
+              element: {
+                id: 'rect1',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'layer2',
+              name: 'Layer 2',
+              element: {
+                id: 'circle1',
+                type: 'circle',
+                name: 'Circle',
+                cx: 50,
+                cy: 50,
+                r: 25,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+          ],
+          keyframes: [],
+        },
+      });
+    });
+
+    it('should set multiple selected layer ids', () => {
+      useStore.getState().setSelectedLayerIds(['layer1', 'layer2']);
+
+      const selectedLayerIds = useStore.getState().project?.selectedLayerIds || [];
+      expect(selectedLayerIds).toEqual(['layer1', 'layer2']);
+      expect(useStore.getState().project?.selectedLayerId).toBeUndefined();
+    });
+
+    it('should set selectedLayerId when only one layer selected', () => {
+      useStore.getState().setSelectedLayerIds(['layer1']);
+
+      expect(useStore.getState().project?.selectedLayerId).toBe('layer1');
+      expect(useStore.getState().project?.selectedLayerIds).toEqual(['layer1']);
+    });
+
+    it('should clear selection when empty array provided', () => {
+      useStore.setState({
+        project: {
+          ...useStore.getState().project!,
+          selectedLayerIds: ['layer1', 'layer2'],
+        },
+      });
+
+      useStore.getState().setSelectedLayerIds([]);
+
+      expect(useStore.getState().project?.selectedLayerIds).toEqual([]);
+      expect(useStore.getState().project?.selectedLayerId).toBeUndefined();
+    });
+
+    it('should handle null project gracefully', () => {
+      useStore.setState({ project: null });
+      useStore.getState().setSelectedLayerIds(['layer1']);
+      expect(useStore.getState().project).toBeNull();
+    });
+  });
+
+  describe('deleteLayers', () => {
+    beforeEach(() => {
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          loop: true,
+          currentTime: 0,
+          isPlaying: false,
+          selectedLayerId: undefined,
+          selectedLayerIds: ['layer1', 'layer2'],
+          layers: [
+            {
+              id: 'layer1',
+              name: 'Layer 1',
+              element: {
+                id: 'rect1',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'layer2',
+              name: 'Layer 2',
+              element: {
+                id: 'circle1',
+                type: 'circle',
+                name: 'Circle',
+                cx: 50,
+                cy: 50,
+                r: 25,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'layer3',
+              name: 'Layer 3',
+              element: {
+                id: 'rect2',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+          ],
+          keyframes: [
+            {
+              id: 'kf-1',
+              time: 0,
+              property: 'x',
+              value: 100,
+              easing: 'linear',
+              layerId: 'layer1',
+            } as any,
+            {
+              id: 'kf-2',
+              time: 1,
+              property: 'y',
+              value: 200,
+              easing: 'linear',
+              layerId: 'layer2',
+            } as any,
+            {
+              id: 'kf-3',
+              time: 0,
+              property: 'x',
+              value: 150,
+              easing: 'linear',
+              layerId: 'layer3',
+            } as any,
+          ],
+        },
+      });
+    });
+
+    it('should delete multiple layers', () => {
+      useStore.getState().deleteLayers(['layer1', 'layer2']);
+
+      const layers = useStore.getState().project?.layers || [];
+      expect(layers).toHaveLength(1);
+      expect(layers[0].id).toBe('layer3');
+    });
+
+    it('should delete keyframes for all deleted layers', () => {
+      useStore.getState().deleteLayers(['layer1', 'layer2']);
+
+      const keyframes = useStore.getState().project?.keyframes || [];
+      expect(keyframes).toHaveLength(1);
+      expect((keyframes[0] as any).layerId).toBe('layer3');
+    });
+
+    it('should clear selection if deleted layers were selected', () => {
+      useStore.getState().deleteLayers(['layer1', 'layer2']);
+
+      expect(useStore.getState().project?.selectedLayerIds).toEqual([]);
+      expect(useStore.getState().project?.selectedLayerId).toBeUndefined();
+    });
+
+    it('should partially clear selection if some deleted layers were selected', () => {
+      useStore.setState({
+        project: {
+          ...useStore.getState().project!,
+          selectedLayerIds: ['layer1', 'layer2', 'layer3'],
+        },
+      });
+
+      useStore.getState().deleteLayers(['layer1']);
+
+      const selectedLayerIds = useStore.getState().project?.selectedLayerIds || [];
+      expect(selectedLayerIds).toEqual(['layer2', 'layer3']);
+    });
+
+    it('should delete child layers when deleting group layers', () => {
+      useStore.setState({
+        project: {
+          name: 'Test',
+          width: 800,
+          height: 600,
+          fps: 30,
+          duration: 5,
+          loop: true,
+          currentTime: 0,
+          isPlaying: false,
+          selectedLayerId: undefined,
+          selectedLayerIds: [],
+          layers: [
+            {
+              id: 'group1',
+              name: 'Group 1',
+              element: {
+                id: 'g1',
+                type: 'group',
+                name: 'Group',
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+                children: [],
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'child1',
+              name: 'Child 1',
+              element: {
+                id: 'rect1',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+              parentId: 'group1',
+            },
+            {
+              id: 'group2',
+              name: 'Group 2',
+              element: {
+                id: 'g2',
+                type: 'group',
+                name: 'Group',
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+                children: [],
+              },
+              visible: true,
+              locked: false,
+            },
+            {
+              id: 'child2',
+              name: 'Child 2',
+              element: {
+                id: 'rect2',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+              parentId: 'group2',
+            },
+            {
+              id: 'layer1',
+              name: 'Layer 1',
+              element: {
+                id: 'rect3',
+                type: 'rect',
+                name: 'Rect',
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+                style: {},
+              },
+              visible: true,
+              locked: false,
+            },
+          ],
+          keyframes: [],
+        },
+      });
+
+      useStore.getState().deleteLayers(['group1', 'group2']);
+
+      const layers = useStore.getState().project?.layers || [];
+      // Should only have layer1 remaining (group1, child1, group2, and child2 should be deleted)
+      expect(layers).toHaveLength(1);
+      expect(layers[0].id).toBe('layer1');
+    });
+
+    it('should handle deleting non-existent layers', () => {
+      useStore.getState().deleteLayers(['non-existent1', 'non-existent2']);
+
+      const layers = useStore.getState().project?.layers || [];
+      expect(layers).toHaveLength(3);
+    });
+
+    it('should handle empty array', () => {
+      useStore.getState().deleteLayers([]);
+
+      const layers = useStore.getState().project?.layers || [];
+      expect(layers).toHaveLength(3);
+    });
+
+    it('should handle null project gracefully', () => {
+      useStore.setState({ project: null });
+      useStore.getState().deleteLayers(['layer1', 'layer2']);
+      expect(useStore.getState().project).toBeNull();
+    });
+  });
 });
