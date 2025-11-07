@@ -1,5 +1,6 @@
 .canvas-container {
   flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,4 +29,42 @@
   color: #999;
   font-size: 0.75rem;
   white-space: nowrap;
+}
+
+/* Canvas Controls */
+.canvas-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #2a2a2a;
+  padding: 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.canvas-controls button {
+  padding: 0.4rem 0.8rem;
+  background: #404040;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  min-width: 32px;
+}
+
+.canvas-controls button:hover {
+  background: #505050;
+}
+
+.canvas-zoom-level {
+  color: #999;
+  font-size: 0.875rem;
+  font-family: 'Courier New', monospace;
+  min-width: 50px;
+  text-align: center;
 }

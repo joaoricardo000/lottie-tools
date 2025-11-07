@@ -8,12 +8,15 @@ export function Timeline() {
   const project = useStore((state) => state.project);
   const setCurrentTime = useStore((state) => state.setCurrentTime);
   const setIsPlaying = useStore((state) => state.setIsPlaying);
+  const toggleLoop = useStore((state) => state.toggleLoop);
   const getKeyframesForLayer = useStore((state) => state.getKeyframesForLayer);
   const addKeyframe = useStore((state) => state.addKeyframe);
   const deleteKeyframe = useStore((state) => state.deleteKeyframe);
   const updateKeyframe = useStore((state) => state.updateKeyframe);
+  const timelineZoom = useStore((state) => state.timelineZoom);
+  const setTimelineZoom = useStore((state) => state.setTimelineZoom);
+  const resetTimelineView = useStore((state) => state.resetTimelineView);
 
-  const [loop, setLoop] = useState(false);
   const [collapsedLayers, setCollapsedLayers] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ keyframeId: string; x: number; y: number } | null>(null);
   const engineRef = useRef<PlaybackEngine | null>(null);
@@ -26,7 +29,7 @@ export function Timeline() {
     const engine = new PlaybackEngine({
       fps: project.fps,
       duration: project.duration,
-      loop,
+      loop: project.loop,
       onUpdate: (time) => {
         setCurrentTime(time);
       },
@@ -37,7 +40,14 @@ export function Timeline() {
     return () => {
       engine.stop();
     };
-  }, [project?.fps, project?.duration, loop, setCurrentTime]);
+  }, [project?.fps, project?.duration, setCurrentTime]);
+
+  // Sync loop state with engine without recreating it
+  useEffect(() => {
+    if (engineRef.current && project) {
+      engineRef.current.setLoop(project.loop);
+    }
+  }, [project?.loop]);
 
   // Sync playback state with engine
   useEffect(() => {
@@ -90,11 +100,9 @@ export function Timeline() {
     }
   };
 
-  const toggleLoop = () => {
-    setLoop(!loop);
-    if (engineRef.current) {
-      engineRef.current.setLoop(!loop);
-    }
+  const handleToggleLoop = () => {
+    toggleLoop(); // Calls store action, which updates project.loop
+    // The useEffect watching project.loop will update the engine
   };
 
   const stepForward = () => {
@@ -300,6 +308,63 @@ export function Timeline() {
     }
   };
 
+  // Handle wheel events on timeline tracks with native event listener
+  useEffect(() => {
+    const tracksContainer = tracksRef.current;
+    if (!tracksContainer) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Find the track content element that was scrolled
+      const target = e.target as HTMLElement;
+      const trackContent = target.closest('.timeline-track-content') as HTMLDivElement;
+
+      if (!trackContent) return;
+
+      // Shift+Wheel = Zoom
+      if (e.shiftKey) {
+        e.preventDefault();
+
+        // Get fresh zoom value from store
+        const store = useStore.getState();
+        const currentZoom = store.timelineZoom;
+
+        // Determine scroll direction - try multiple properties for cross-browser support
+        // Some trackpads report shift+vertical as horizontal (deltaX)
+        let zoomDelta: number;
+
+        if ((e as any).wheelDelta !== undefined && (e as any).wheelDelta !== 0) {
+          // wheelDelta: positive = scroll down = zoom OUT, negative = scroll up = zoom IN
+          zoomDelta = (e as any).wheelDelta > 0 ? -0.2 : 0.2;
+        } else if (e.deltaX !== 0) {
+          // deltaX: negative = scroll down = zoom OUT, positive = scroll up = zoom IN
+          zoomDelta = e.deltaX < 0 ? -0.2 : 0.2;
+        } else if (e.deltaY !== 0 || 1 / e.deltaY !== Infinity) {
+          // deltaY: positive = scroll down = zoom OUT, negative (including -0) = zoom IN
+          const isScrollingUp = 1 / e.deltaY < 0;
+          zoomDelta = isScrollingUp ? 0.2 : -0.2;
+        } else {
+          // No scroll detected, do nothing
+          return;
+        }
+
+        const newZoom = currentZoom + zoomDelta;
+        store.setTimelineZoom(newZoom);
+      }
+      // Regular vertical wheel = Horizontal scroll
+      else if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        trackContent.scrollLeft += e.deltaY;
+      }
+    };
+
+    // Add event listener with passive: false to allow preventDefault
+    tracksContainer.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      tracksContainer.removeEventListener('wheel', handleWheel);
+    };
+  }, [setTimelineZoom]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -380,11 +445,11 @@ export function Timeline() {
           ⏭
         </button>
         <button
-          onClick={toggleLoop}
+          onClick={handleToggleLoop}
           aria-label="Loop"
-          title={loop ? 'Disable loop' : 'Enable loop'}
-          data-loop={loop}
-          className={loop ? 'active' : ''}
+          title={project?.loop ? 'Disable loop' : 'Enable loop'}
+          data-loop={project?.loop}
+          className={project?.loop ? 'active' : ''}
         >
           🔁
         </button>
@@ -447,42 +512,54 @@ export function Timeline() {
                       </div>
                       <div
                         className="timeline-track-content"
-                        onClick={(e) => handleTrackClick(e, layer.id, property)}
                       >
-                        {/* Time Grid */}
-                        <div className="timeline-track-grid">
-                          {Array.from({ length: Math.ceil(project.duration) + 1 }, (_, i) => (
-                            <div
-                              key={i}
-                              className="timeline-track-grid-line"
-                              style={{ left: `${(i / project.duration) * 100}%` }}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Keyframe Markers */}
-                        {keyframes.map((kf) => {
-                          const position = (kf.time / project.duration) * 100;
-                          return (
-                            <div
-                              key={kf.id}
-                              className="timeline-keyframe"
-                              style={{
-                                left: `${position}%`,
-                                background: getEasingColor(kf.easing),
-                              }}
-                              onClick={(e) => handleKeyframeClick(e, kf.id)}
-                              onContextMenu={(e) => handleKeyframeContextMenu(e, kf.id)}
-                              title={`Time: ${kf.time.toFixed(2)}s\nEasing: ${kf.easing}\nShift+Click to delete · Right-click for easing`}
-                            />
-                          );
-                        })}
-
-                        {/* Current Time Indicator */}
                         <div
-                          className="timeline-track-playhead"
-                          style={{ left: `${(project.currentTime / project.duration) * 100}%` }}
-                        />
+                          className="timeline-track-content-inner"
+                          style={{ width: `${timelineZoom * 100}%` }}
+                          onClick={(e) => handleTrackClick(e, layer.id, property)}
+                        >
+                          {/* Time Grid */}
+                          <div className="timeline-track-grid">
+                            {Array.from({ length: Math.floor(project.duration) + 1 }, (_, i) => {
+                              const position = (i / project.duration) * 100;
+                              // Only render grid lines that are at or before 100%
+                              if (position <= 100) {
+                                return (
+                                  <div
+                                    key={i}
+                                    className="timeline-track-grid-line"
+                                    style={{ left: `${position}%` }}
+                                  />
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+
+                          {/* Keyframe Markers */}
+                          {keyframes.map((kf) => {
+                            const position = (kf.time / project.duration) * 100;
+                            return (
+                              <div
+                                key={kf.id}
+                                className="timeline-keyframe"
+                                style={{
+                                  left: `${position}%`,
+                                  background: getEasingColor(kf.easing),
+                                }}
+                                onClick={(e) => handleKeyframeClick(e, kf.id)}
+                                onContextMenu={(e) => handleKeyframeContextMenu(e, kf.id)}
+                                title={`Time: ${kf.time.toFixed(2)}s\nEasing: ${kf.easing}\nShift+Click to delete · Right-click for easing`}
+                              />
+                            );
+                          })}
+
+                          {/* Current Time Indicator */}
+                          <div
+                            className="timeline-track-playhead"
+                            style={{ left: `${(project.currentTime / project.duration) * 100}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
                   );
@@ -490,6 +567,22 @@ export function Timeline() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Timeline Zoom Controls */}
+      {project && project.layers.length > 0 && (
+        <div className="timeline-zoom-controls">
+          <button onClick={() => setTimelineZoom(timelineZoom + 0.5)} title="Zoom in timeline">
+            +
+          </button>
+          <span className="timeline-zoom-level">{Math.round(timelineZoom * 100)}%</span>
+          <button onClick={() => setTimelineZoom(timelineZoom - 0.5)} title="Zoom out timeline">
+            -
+          </button>
+          <button onClick={resetTimelineView} title="Reset timeline zoom">
+            Reset
+          </button>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './Canvas.css';
 import { useStore } from '../store/useStore';
 import { getValueAtTime, getColorAtTime } from '../engine/Interpolation';
@@ -8,7 +8,17 @@ export function Canvas() {
   const project = useStore((state) => state.project);
   const getKeyframesForLayer = useStore((state) => state.getKeyframesForLayer);
   const selectLayer = useStore((state) => state.selectLayer);
+  const canvasZoom = useStore((state) => state.canvasZoom);
+  const canvasPan = useStore((state) => state.canvasPan);
+  const setCanvasZoom = useStore((state) => state.setCanvasZoom);
+  const setCanvasPan = useStore((state) => state.setCanvasPan);
+  const resetCanvasView = useStore((state) => state.resetCanvasView);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
 
   // Render layers on canvas
   useEffect(() => {
@@ -281,14 +291,38 @@ export function Canvas() {
     }
   }, [project, project?.currentTime, project?.layers, project?.keyframes, getKeyframesForLayer]);
 
+  // Transform screen coordinates to canvas coordinates (accounting for zoom and pan)
+  const screenToCanvas = (screenX: number, screenY: number): { x: number; y: number } => {
+    if (!containerRef.current || !wrapperRef.current) return { x: 0, y: 0 };
+
+    // Get container position in screen space
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    // Get wrapper's untransformed position relative to container
+    // (offsetLeft/Top give pre-transform positions)
+    const wrapperOffsetX = wrapperRef.current.offsetLeft;
+    const wrapperOffsetY = wrapperRef.current.offsetTop;
+
+    // Calculate wrapper's top-left corner in screen space (before transform)
+    const wrapperScreenX = containerRect.left + wrapperOffsetX;
+    const wrapperScreenY = containerRect.top + wrapperOffsetY;
+
+    // Get position relative to wrapper's origin
+    const relX = screenX - wrapperScreenX;
+    const relY = screenY - wrapperScreenY;
+
+    // Apply inverse transform: (point - translation) / scale
+    const canvasX = (relX - canvasPan.x) / canvasZoom;
+    const canvasY = (relY - canvasPan.y) / canvasZoom;
+
+    return { x: canvasX, y: canvasY };
+  };
+
   // Handle canvas clicks to select/deselect layers
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!project || !canvasRef.current) return;
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const clickY = event.clientY - rect.top;
+    const { x: clickX, y: clickY } = screenToCanvas(event.clientX, event.clientY);
 
     // Check each layer in reverse order (top to bottom)
     for (let i = project.layers.length - 1; i >= 0; i--) {
@@ -326,10 +360,7 @@ export function Canvas() {
   const handleCanvasDoubleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!project || !canvasRef.current) return;
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const clickY = event.clientY - rect.top;
+    const { x: clickX, y: clickY } = screenToCanvas(event.clientX, event.clientY);
 
     // Check each layer in reverse order (top to bottom)
     for (let i = project.layers.length - 1; i >= 0; i--) {
@@ -486,9 +517,116 @@ export function Canvas() {
     }
   };
 
+  // Handle mouse wheel for zoom
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const delta = event.deltaY > 0 ? -0.1 : 0.1;
+    const newZoom = canvasZoom + delta;
+
+    // Zoom towards mouse position
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      // Calculate the point in canvas space before zoom
+      const canvasXBefore = (mouseX - canvasPan.x) / canvasZoom;
+      const canvasYBefore = (mouseY - canvasPan.y) / canvasZoom;
+
+      // Calculate the point in canvas space after zoom
+      const canvasXAfter = (mouseX - canvasPan.x) / newZoom;
+      const canvasYAfter = (mouseY - canvasPan.y) / newZoom;
+
+      // Adjust pan to keep the point under the mouse
+      const panDeltaX = (canvasXAfter - canvasXBefore) * newZoom;
+      const panDeltaY = (canvasYAfter - canvasYBefore) * newZoom;
+
+      setCanvasZoom(newZoom);
+      setCanvasPan({
+        x: canvasPan.x + panDeltaX,
+        y: canvasPan.y + panDeltaY,
+      });
+    } else {
+      setCanvasZoom(newZoom);
+    }
+  };
+
+  // Handle mouse down for panning
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Pan with middle mouse button or Space+left click
+    if (event.button === 1 || (event.button === 0 && isSpacePressed)) {
+      event.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: event.clientX - canvasPan.x, y: event.clientY - canvasPan.y });
+    }
+  };
+
+  // Handle mouse move for panning
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isPanning) {
+      setCanvasPan({
+        x: event.clientX - panStart.x,
+        y: event.clientY - panStart.y,
+      });
+    }
+  };
+
+  // Handle mouse up to end panning
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  // Keyboard handler for Space key panning
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && !event.repeat && containerRef.current) {
+        // Prevent space from triggering other actions (like scrolling)
+        if (event.target === document.body || containerRef.current.contains(event.target as Node)) {
+          event.preventDefault();
+          setIsSpacePressed(true);
+          containerRef.current.style.cursor = 'grab';
+        }
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && containerRef.current) {
+        setIsSpacePressed(false);
+        setIsPanning(false);
+        containerRef.current.style.cursor = '';
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   return (
-    <div className="canvas-container" onClick={handleContainerClick}>
-      <div className="canvas-wrapper">
+    <div
+      ref={containerRef}
+      className="canvas-container"
+      onClick={handleContainerClick}
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+    >
+      <div
+        ref={wrapperRef}
+        className="canvas-wrapper"
+        style={{
+          transform: `translate(${canvasPan.x}px, ${canvasPan.y}px) scale(${canvasZoom})`,
+          transformOrigin: '0 0',
+        }}
+      >
         <canvas
           ref={canvasRef}
           className="canvas"
@@ -501,6 +639,19 @@ export function Canvas() {
         <div className="canvas-info">
           {project?.width} × {project?.height}px @ {project?.fps}fps
         </div>
+      </div>
+      {/* Canvas Controls */}
+      <div className="canvas-controls">
+        <button onClick={() => setCanvasZoom(canvasZoom + 0.2)} title="Zoom in">
+          +
+        </button>
+        <span className="canvas-zoom-level">{Math.round(canvasZoom * 100)}%</span>
+        <button onClick={() => setCanvasZoom(canvasZoom - 0.2)} title="Zoom out">
+          -
+        </button>
+        <button onClick={resetCanvasView} title="Reset zoom and pan">
+          Reset
+        </button>
       </div>
     </div>
   );

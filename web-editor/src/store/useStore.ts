@@ -29,11 +29,17 @@ interface Store {
   // Project state
   project: ProjectState | null;
 
+  // UI state (not persisted)
+  canvasZoom: number;
+  canvasPan: { x: number; y: number };
+  timelineZoom: number;
+
   // Actions
   setProject: (project: ProjectState) => void;
   updateProjectSettings: (settings: Partial<ProjectState>) => void;
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
+  toggleLoop: () => void;
   toggleLayerVisibility: (layerId: string) => void;
   toggleLayerLock: (layerId: string) => void;
   selectLayer: (layerId: string | undefined) => void;
@@ -48,6 +54,15 @@ interface Store {
   deleteKeyframe: (keyframeId: string) => void;
   updateKeyframe: (keyframeId: string, updates: Partial<Keyframe>) => void;
   getKeyframesForLayer: (layerId: string, property?: AnimatableProperty) => Keyframe[];
+
+  // Canvas view actions
+  setCanvasZoom: (zoom: number) => void;
+  setCanvasPan: (pan: { x: number; y: number }) => void;
+  resetCanvasView: () => void;
+
+  // Timeline view actions
+  setTimelineZoom: (zoom: number) => void;
+  resetTimelineView: () => void;
 
   // Project management
   resetProject: () => void;
@@ -92,6 +107,11 @@ export const useStore = create<Store>((set) => ({
   // Initial state - load from localStorage or use default
   project: loadProjectFromStorage() || defaultProject,
 
+  // UI state
+  canvasZoom: 1.0,
+  canvasPan: { x: 0, y: 0 },
+  timelineZoom: 1.0,
+
   // Actions
   setProject: (project) => set({ project }),
 
@@ -108,6 +128,11 @@ export const useStore = create<Store>((set) => ({
   setIsPlaying: (playing) =>
     set((state) => ({
       project: state.project ? { ...state.project, isPlaying: playing } : null,
+    })),
+
+  toggleLoop: () =>
+    set((state) => ({
+      project: state.project ? { ...state.project, loop: !state.project.loop } : null,
     })),
 
   toggleLayerVisibility: (layerId) =>
@@ -338,6 +363,18 @@ export const useStore = create<Store>((set) => ({
       })
       .sort((a, b) => a.time - b.time);
   },
+
+  // Canvas view actions
+  setCanvasZoom: (zoom) => set({ canvasZoom: Math.max(0.1, Math.min(5, zoom)) }),
+
+  setCanvasPan: (pan) => set({ canvasPan: pan }),
+
+  resetCanvasView: () => set({ canvasZoom: 1.0, canvasPan: { x: 0, y: 0 } }),
+
+  // Timeline view actions
+  setTimelineZoom: (zoom) => set({ timelineZoom: Math.max(0.5, Math.min(5, zoom)) }),
+
+  resetTimelineView: () => set({ timelineZoom: 1.0 }),
 
   resetProject: () =>
     set({
