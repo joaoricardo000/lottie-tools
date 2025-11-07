@@ -1,0 +1,3 @@
+[submodule "lottie-spec"]
+	path = lottie-spec
+	url = git@github.com:lottie/lottie-spec.git
