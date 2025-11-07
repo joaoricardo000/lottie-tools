@@ -678,5 +678,84 @@ describe('LottieExporter', () => {
       // Check stroke color is parsed correctly (red = [1, 0, 0])
       expect(strokeShape.c.k).toEqual([1, 0, 0]);
     });
+
+    it('should export hold easing with h property (not tangents)', () => {
+      const rectElement: RectElement = {
+        type: 'rect',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        transform: {
+          x: 100,
+          y: 100,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+        },
+        style: {
+          fill: '#ff0000',
+          stroke: 'none',
+          opacity: 1,
+        },
+      };
+
+      const layer: Layer = {
+        id: 'layer1',
+        name: 'Test',
+        element: rectElement,
+        visible: true,
+        locked: false,
+      };
+
+      const project: Project = {
+        name: 'Test',
+        width: 800,
+        height: 600,
+        fps: 30,
+        duration: 2,
+        currentTime: 0,
+        isPlaying: false,
+        layers: [layer],
+        keyframes: [
+          {
+            id: 'kf1',
+            time: 0,
+            property: 'x',
+            value: 100,
+            easing: 'hold',
+            layerId: 'layer1',
+          } as any,
+          {
+            id: 'kf2',
+            time: 1,
+            property: 'x',
+            value: 300,
+            easing: 'linear',
+            layerId: 'layer1',
+          } as any,
+        ],
+      };
+
+      const lottie = LottieExporter.exportToLottie(project);
+      const shapeLayer = lottie.layers[0] as any;
+      const firstKeyframe = shapeLayer.ks.p.k[0];
+      const secondKeyframe = shapeLayer.ks.p.k[1];
+
+      // First keyframe with hold easing should have h: 1
+      expect(firstKeyframe.h).toBe(1);
+      // Hold keyframes should NOT have interpolation properties
+      expect(firstKeyframe.i).toBeUndefined();
+      expect(firstKeyframe.o).toBeUndefined();
+      expect(firstKeyframe.e).toBeUndefined();
+      // Should still have time and start value
+      expect(firstKeyframe.t).toBe(0);
+      expect(firstKeyframe.s).toEqual([100, 150]); // [x value from keyframe, y from transform + centerY]
+
+      // Second keyframe with linear easing should have normal interpolation
+      expect(secondKeyframe.h).toBeUndefined();
+      expect(secondKeyframe.i).toBeDefined();
+      expect(secondKeyframe.o).toBeDefined();
+    });
   });
 });

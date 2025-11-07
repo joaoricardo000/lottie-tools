@@ -32,3 +32,79 @@
 .toolbar-actions button:hover {
   background: #505050;
 }
+
+.toolbar-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #2c2c2c;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  color: white;
+}
+
+.modal-content h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.modal-content p {
+  margin: 0.5rem 0;
+  color: #cccccc;
+  line-height: 1.5;
+}
+
+.modal-note {
+  font-size: 0.875rem;
+  color: #888888;
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.modal-actions button {
+  padding: 0.625rem 1.25rem;
+  background: #404040;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.modal-actions button:hover {
+  background: #505050;
+}
+
+.modal-actions button.danger {
+  background: #dc3545;
+}
+
+.modal-actions button.danger:hover {
+  background: #c82333;
+}

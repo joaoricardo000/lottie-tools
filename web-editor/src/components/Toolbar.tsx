@@ -9,11 +9,24 @@ import type { LottieAnimation } from '../models/LottieTypes';
 
 export function Toolbar() {
   const project = useStore((state) => state.project);
+  const resetProject = useStore((state) => state.resetProject);
+  const selectLayer = useStore((state) => state.selectLayer);
   const [exportDialog, setExportDialog] = useState<{
     lottie: LottieAnimation;
     filename: string;
     validationMessage: string;
   } | null>(null);
+  const [showNewProjectConfirm, setShowNewProjectConfirm] = useState(false);
+
+  const handleNewProject = () => {
+    setShowNewProjectConfirm(true);
+  };
+
+  const confirmNewProject = () => {
+    resetProject();
+    selectLayer(undefined);
+    setShowNewProjectConfirm(false);
+  };
 
   const handleExport = () => {
     if (!project) {
@@ -55,6 +68,7 @@ export function Toolbar() {
       <div className="toolbar">
         <h1 className="toolbar-title">Lottie Open Studio</h1>
         <div className="toolbar-actions">
+          <button onClick={handleNewProject}>New Project</button>
           <FileImport />
           <button disabled>Import Lottie</button>
           <button onClick={handleExport} disabled={!project || project.layers.length === 0}>
@@ -70,6 +84,22 @@ export function Toolbar() {
           validationMessage={exportDialog.validationMessage}
           onClose={() => setExportDialog(null)}
         />
+      )}
+
+      {showNewProjectConfirm && (
+        <div className="modal-overlay" onClick={() => setShowNewProjectConfirm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>New Project</h3>
+            <p>Are you sure? This will clear the current project.</p>
+            <p className="modal-note">Your current project has been auto-saved and can be recovered.</p>
+            <div className="modal-actions">
+              <button onClick={() => setShowNewProjectConfirm(false)}>Cancel</button>
+              <button onClick={confirmNewProject} className="danger">
+                Clear and Start New
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

@@ -67,6 +67,9 @@ export function applyEasing(t: number, easing: string): number {
     case 'ease-in-out':
     case 'easeInOut':
       return easeInOut(t);
+    case 'hold':
+      // Step-end: holds the old value until the keyframe time, then instantly jumps
+      return t >= 1 ? 1 : 0;
     case 'linear':
     default:
       return Math.max(0, Math.min(1, t));

@@ -1,0 +1,65 @@
+.project-settings-panel {
+  padding: 1rem;
+  color: #ffffff;
+}
+
+.project-settings-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  color: #ffffff;
+}
+
+.section-subtitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: #aaaaaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.project-settings-section {
+  margin-bottom: 1.5rem;
+}
+
+.project-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.project-setting-row label {
+  font-size: 0.875rem;
+  color: #cccccc;
+  flex: 1;
+}
+
+.project-setting-row input[type="text"],
+.project-setting-row input[type="number"] {
+  width: 120px;
+  padding: 0.5rem;
+  background: #303030;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.875rem;
+}
+
+.project-setting-row input[type="text"]:focus,
+.project-setting-row input[type="number"]:focus {
+  outline: none;
+  border-color: #4a9eff;
+}
+
+.project-setting-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #4a9eff;
+}
+
+.project-setting-row input[type="text"]::placeholder {
+  color: #666666;
+}

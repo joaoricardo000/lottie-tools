@@ -212,26 +212,34 @@ export class LottieExporter {
 
       // Get easing from first keyframe that has one
       const easing = (xKf?.easing || yKf?.easing || 'linear');
-      const tangents = this.getEasingTangents(easing);
 
       const keyframe: LottieKeyframe = {
         t: Math.round(time * fps),  // Convert seconds to frames
         s: [xValue, yValue],
       };
 
-      // Add end value for interpolation (if not last keyframe)
-      if (index < sortedTimes.length - 1) {
-        const nextTime = sortedTimes[index + 1];
-        const nextXKf = xKeyframes.find(kf => kf.time === nextTime);
-        const nextYKf = yKeyframes.find(kf => kf.time === nextTime);
-        const nextX = nextXKf ? (typeof nextXKf.value === 'number' ? nextXKf.value : xValue) : xValue;
-        const nextY = nextYKf ? (typeof nextYKf.value === 'number' ? nextYKf.value : yValue) : yValue;
-        keyframe.e = [nextX, nextY];
-      }
+      // Check if this is a hold keyframe
+      if (easing === 'hold') {
+        // Hold keyframes use h: 1 and don't have interpolation properties
+        keyframe.h = 1;
+      } else {
+        // Normal keyframes have easing tangents and end values
+        const tangents = this.getEasingTangents(easing);
 
-      // Add easing tangents (always present now)
-      keyframe.i = tangents.i;
-      keyframe.o = tangents.o;
+        // Add end value for interpolation (if not last keyframe)
+        if (index < sortedTimes.length - 1) {
+          const nextTime = sortedTimes[index + 1];
+          const nextXKf = xKeyframes.find(kf => kf.time === nextTime);
+          const nextYKf = yKeyframes.find(kf => kf.time === nextTime);
+          const nextX = nextXKf ? (typeof nextXKf.value === 'number' ? nextXKf.value : xValue) : xValue;
+          const nextY = nextYKf ? (typeof nextYKf.value === 'number' ? nextYKf.value : yValue) : yValue;
+          keyframe.e = [nextX, nextY];
+        }
+
+        // Add easing tangents
+        keyframe.i = tangents.i;
+        keyframe.o = tangents.o;
+      }
 
       return keyframe;
     });
@@ -272,26 +280,31 @@ export class LottieExporter {
       const yValue = yKf ? (typeof yKf.value === 'number' ? yKf.value : defaultScaleY) : defaultScaleY;
 
       const easing = (xKf?.easing || yKf?.easing || 'linear');
-      const tangents = this.getEasingTangents(easing);
 
       const keyframe: LottieKeyframe = {
         t: Math.round(time * fps),
         s: [xValue * 100, yValue * 100],  // Convert to percentage
       };
 
-      // Add end value for interpolation
-      if (index < sortedTimes.length - 1) {
-        const nextTime = sortedTimes[index + 1];
-        const nextXKf = scaleXKfs.find(kf => kf.time === nextTime);
-        const nextYKf = scaleYKfs.find(kf => kf.time === nextTime);
-        const nextX = nextXKf ? (typeof nextXKf.value === 'number' ? nextXKf.value : xValue) : xValue;
-        const nextY = nextYKf ? (typeof nextYKf.value === 'number' ? nextYKf.value : yValue) : yValue;
-        keyframe.e = [nextX * 100, nextY * 100];
-      }
+      // Check if this is a hold keyframe
+      if (easing === 'hold') {
+        keyframe.h = 1;
+      } else {
+        const tangents = this.getEasingTangents(easing);
 
-      // Add easing tangents (always present now)
-      keyframe.i = tangents.i;
-      keyframe.o = tangents.o;
+        // Add end value for interpolation
+        if (index < sortedTimes.length - 1) {
+          const nextTime = sortedTimes[index + 1];
+          const nextXKf = scaleXKfs.find(kf => kf.time === nextTime);
+          const nextYKf = scaleYKfs.find(kf => kf.time === nextTime);
+          const nextX = nextXKf ? (typeof nextXKf.value === 'number' ? nextXKf.value : xValue) : xValue;
+          const nextY = nextYKf ? (typeof nextYKf.value === 'number' ? nextYKf.value : yValue) : yValue;
+          keyframe.e = [nextX * 100, nextY * 100];
+        }
+
+        keyframe.i = tangents.i;
+        keyframe.o = tangents.o;
+      }
 
       return keyframe;
     });
@@ -315,24 +328,29 @@ export class LottieExporter {
 
     const lottieKeyframes: LottieKeyframe[] = rotationKfs.map((kf, index) => {
       const value = typeof kf.value === 'number' ? kf.value : defaultRotation;
-      const tangents = this.getEasingTangents(kf.easing || 'linear');
+      const easing = kf.easing || 'linear';
 
       const keyframe: LottieKeyframe = {
         t: Math.round(kf.time * fps),
         s: [value],
       };
 
-      // Add end value
-      if (index < rotationKfs.length - 1) {
-        const nextValue = typeof rotationKfs[index + 1].value === 'number'
-          ? rotationKfs[index + 1].value
-          : value;
-        keyframe.e = [nextValue];
-      }
+      if (easing === 'hold') {
+        keyframe.h = 1;
+      } else {
+        const tangents = this.getEasingTangents(easing);
 
-      // Add easing tangents (always present now)
-      keyframe.i = tangents.i;
-      keyframe.o = tangents.o;
+        // Add end value
+        if (index < rotationKfs.length - 1) {
+          const nextValue = typeof rotationKfs[index + 1].value === 'number'
+            ? rotationKfs[index + 1].value
+            : value;
+          keyframe.e = [nextValue];
+        }
+
+        keyframe.i = tangents.i;
+        keyframe.o = tangents.o;
+      }
 
       return keyframe;
     });
@@ -356,24 +374,29 @@ export class LottieExporter {
 
     const lottieKeyframes: LottieKeyframe[] = opacityKfs.map((kf, index) => {
       const value = typeof kf.value === 'number' ? kf.value * 100 : defaultOpacity * 100;
-      const tangents = this.getEasingTangents(kf.easing || 'linear');
+      const easing = kf.easing || 'linear';
 
       const keyframe: LottieKeyframe = {
         t: Math.round(kf.time * fps),
         s: [value],
       };
 
-      // Add end value
-      if (index < opacityKfs.length - 1) {
-        const nextValue = typeof opacityKfs[index + 1].value === 'number'
-          ? opacityKfs[index + 1].value * 100
-          : value;
-        keyframe.e = [nextValue];
-      }
+      if (easing === 'hold') {
+        keyframe.h = 1;
+      } else {
+        const tangents = this.getEasingTangents(easing);
 
-      // Add easing tangents (always present now)
-      keyframe.i = tangents.i;
-      keyframe.o = tangents.o;
+        // Add end value
+        if (index < opacityKfs.length - 1) {
+          const nextValue = typeof opacityKfs[index + 1].value === 'number'
+            ? opacityKfs[index + 1].value * 100
+            : value;
+          keyframe.e = [nextValue];
+        }
+
+        keyframe.i = tangents.i;
+        keyframe.o = tangents.o;
+      }
 
       return keyframe;
     });
@@ -399,19 +422,23 @@ export class LottieExporter {
       return { a: 0, k: [rgb.r / 255, rgb.g / 255, rgb.b / 255] };
     }
 
-    // Animated - all keyframes except last need easing handles
+    // Animated
     const lottieKeyframes: any[] = colorKfs.map((kf, index) => {
       const colorValue = typeof kf.value === 'string' ? kf.value : defaultColor;
       const rgb = this.hexToRgb(colorValue);
+      const easing = kf.easing || 'linear';
 
       const keyframe: any = {
         t: Math.round(kf.time * fps),
         s: [rgb.r / 255, rgb.g / 255, rgb.b / 255],
       };
 
-      // Add easing handles to all keyframes except the last
-      if (index < colorKfs.length - 1) {
-        const tangents = this.getEasingTangents(kf.easing || 'linear');
+      // Check if this is a hold keyframe or the last keyframe
+      if (easing === 'hold') {
+        keyframe.h = 1;
+      } else if (index < colorKfs.length - 1) {
+        // Add easing handles to all non-hold, non-last keyframes
+        const tangents = this.getEasingTangents(easing);
         keyframe.o = tangents.o;
         keyframe.i = tangents.i;
       }
@@ -439,24 +466,29 @@ export class LottieExporter {
 
     const lottieKeyframes: LottieKeyframe[] = numericKfs.map((kf, index) => {
       const value = typeof kf.value === 'number' ? kf.value : defaultValue;
-      const tangents = this.getEasingTangents(kf.easing || 'linear');
+      const easing = kf.easing || 'linear';
 
       const keyframe: LottieKeyframe = {
         t: Math.round(kf.time * fps),
         s: [value],
       };
 
-      // Add end value
-      if (index < numericKfs.length - 1) {
-        const nextValue = typeof numericKfs[index + 1].value === 'number'
-          ? numericKfs[index + 1].value
-          : value;
-        keyframe.e = [nextValue];
-      }
+      if (easing === 'hold') {
+        keyframe.h = 1;
+      } else {
+        const tangents = this.getEasingTangents(easing);
 
-      // Add easing tangents (always present now)
-      keyframe.i = tangents.i;
-      keyframe.o = tangents.o;
+        // Add end value
+        if (index < numericKfs.length - 1) {
+          const nextValue = typeof numericKfs[index + 1].value === 'number'
+            ? numericKfs[index + 1].value
+            : value;
+          keyframe.e = [nextValue];
+        }
+
+        keyframe.i = tangents.i;
+        keyframe.o = tangents.o;
+      }
 
       return keyframe;
     });

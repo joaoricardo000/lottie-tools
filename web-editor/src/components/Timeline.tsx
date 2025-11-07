@@ -240,6 +240,8 @@ export function Timeline() {
       case 'easeInOut':
       case 'ease-in-out':
         return '#9c27b0';
+      case 'hold':
+        return '#f44336';
       case 'linear':
       default:
         return '#2196f3';

@@ -41,6 +41,7 @@ describe('PropertyEditor', () => {
         height: 600,
         fps: 30,
         duration: 5,
+        loop: true,
         currentTime: 0,
         isPlaying: false,
         layers: [mockLayer],
@@ -75,7 +76,7 @@ describe('PropertyEditor', () => {
     expect(yInput.value).toBe('200');
   });
 
-  it('should show message when no layer is selected', () => {
+  it('should show project settings when no layer is selected', () => {
     useStore.setState({
       project: {
         name: 'Test',
@@ -83,6 +84,7 @@ describe('PropertyEditor', () => {
         height: 600,
         fps: 30,
         duration: 5,
+        loop: true,
         currentTime: 0,
         isPlaying: false,
         layers: [mockLayer],
@@ -92,7 +94,10 @@ describe('PropertyEditor', () => {
     });
 
     render(<PropertyEditor />);
-    expect(screen.getByText(/no layer selected/i)).toBeInTheDocument();
+    expect(screen.getByText(/project settings/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/width/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/fps/i)).toBeInTheDocument();
   });
 
   it('should have keyframe button for each property', () => {

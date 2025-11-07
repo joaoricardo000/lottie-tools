@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import './LayersPanel.css';
 
@@ -6,8 +7,35 @@ export function LayersPanel() {
   const toggleLayerVisibility = useStore((state) => state.toggleLayerVisibility);
   const toggleLayerLock = useStore((state) => state.toggleLayerLock);
   const selectLayer = useStore((state) => state.selectLayer);
+  const renameLayer = useStore((state) => state.renameLayer);
+
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   const hasLayers = project && project.layers.length > 0;
+
+  const handleStartEdit = (layerId: string, currentName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingLayerId(layerId);
+    setEditingName(currentName);
+  };
+
+  const handleFinishEdit = (layerId: string) => {
+    if (editingName.trim() !== '') {
+      renameLayer(layerId, editingName.trim());
+    }
+    setEditingLayerId(null);
+    setEditingName('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, layerId: string) => {
+    if (e.key === 'Enter') {
+      handleFinishEdit(layerId);
+    } else if (e.key === 'Escape') {
+      setEditingLayerId(null);
+      setEditingName('');
+    }
+  };
 
   return (
     <div className="layers-panel">
@@ -24,7 +52,25 @@ export function LayersPanel() {
                 onClick={() => selectLayer(layer.id)}
               >
                 <div className="layer-info">
-                  <span className="layer-name">{layer.name}</span>
+                  {editingLayerId === layer.id ? (
+                    <input
+                      type="text"
+                      className="layer-name-input"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onBlur={() => handleFinishEdit(layer.id)}
+                      onKeyDown={(e) => handleKeyDown(e, layer.id)}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      className="layer-name"
+                      onDoubleClick={(e) => handleStartEdit(layer.id, layer.name, e)}
+                    >
+                      {layer.name}
+                    </span>
+                  )}
                   <span className="layer-type">{layer.element.type}</span>
                 </div>
                 <div className="layer-controls">

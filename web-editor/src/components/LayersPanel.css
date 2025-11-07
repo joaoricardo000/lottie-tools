@@ -51,6 +51,19 @@
   font-size: 0.875rem;
   font-weight: 500;
   color: #ffffff;
+  cursor: text;
+}
+
+.layer-name-input {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+  background: #202020;
+  border: 1px solid #4a9eff;
+  border-radius: 3px;
+  padding: 2px 4px;
+  outline: none;
+  width: 100%;
 }
 
 .layer-type {

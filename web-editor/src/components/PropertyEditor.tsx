@@ -3,6 +3,7 @@ import './PropertyEditor.css';
 import { useStore } from '../store/useStore';
 import { getValueAtTime, getColorAtTime } from '../engine/Interpolation';
 import type { AnimatableProperty } from '../models/Keyframe';
+import { ProjectSettingsPanel } from './ProjectSettingsPanel';
 
 export function PropertyEditor() {
   const project = useStore((state) => state.project);
@@ -408,7 +409,7 @@ export function PropertyEditor() {
   if (!selectedLayer) {
     return (
       <div className="property-editor">
-        <div className="property-editor-empty">No layer selected</div>
+        <ProjectSettingsPanel />
       </div>
     );
   }
@@ -433,6 +434,7 @@ export function PropertyEditor() {
             <option value="easeIn">Ease In</option>
             <option value="easeOut">Ease Out</option>
             <option value="easeInOut">Ease In-Out</option>
+            <option value="hold">Hold</option>
           </select>
           <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
             For new keyframes
