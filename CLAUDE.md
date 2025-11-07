@@ -1,0 +1,4 @@
+- Always keep `README.md` and related PLAN files up-to-date after making changes.
+- While implementing Milestones keep going without asking the user if it wants to continue or not.
+- Before finishing a Milestone, always go through the plan again and double-check if all steps have been implemented. For each step find the code that is supposed to implement it and check if it matches the criteria.
+- If fixing bugs, do not commit until the user has tested it and gives the go ahead
