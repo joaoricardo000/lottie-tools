@@ -1,0 +1,125 @@
+.color-picker-container {
+  position: relative;
+  display: inline-block;
+}
+
+.color-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: #1a1a1a;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-picker-trigger:hover {
+  border-color: #4a9eff;
+  background: #252525;
+}
+
+.color-preview {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #404040;
+  border-radius: 3px;
+  display: block;
+}
+
+.color-value {
+  font-size: 12px;
+  color: #888;
+  min-width: 60px;
+  text-align: left;
+}
+
+.color-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #2a2a2a;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  padding: 12px;
+  min-width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.color-picker-section {
+  margin-bottom: 12px;
+}
+
+.color-picker-section:last-child {
+  margin-bottom: 0;
+}
+
+.color-picker-section label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 6px;
+}
+
+.color-picker-section input[type="color"] {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #1a1a1a;
+}
+
+.color-picker-section input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.color-picker-section input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+
+.color-picker-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  gap: 6px;
+}
+
+.color-picker-swatch {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #404040;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.color-picker-swatch:hover {
+  transform: scale(1.1);
+  border-color: #4a9eff;
+  box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+}
+
+.color-picker-swatch:active {
+  transform: scale(0.95);
+}
+
+.color-picker-none-btn {
+  width: 100%;
+  padding: 8px;
+  background: #404040;
+  border: none;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.color-picker-none-btn:hover {
+  background: #505050;
+  color: #fff;
+}

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import './PropertyEditor.css';
 import { useStore } from '../store/useStore';
 import { getValueAtTime, getColorAtTime } from '../engine/Interpolation';
 import type { AnimatableProperty } from '../models/Keyframe';
 import { ProjectSettingsPanel } from './ProjectSettingsPanel';
+import { ColorPicker } from './ColorPicker';
 
 export function PropertyEditor() {
   const project = useStore((state) => state.project);
@@ -24,6 +25,35 @@ export function PropertyEditor() {
   const selectedLayer = project?.layers.find(
     (layer) => layer.id === project.selectedLayerId
   );
+
+  // Extract all unique colors from the project
+  const projectColors = useMemo(() => {
+    if (!project) return [];
+    const colors = new Set<string>();
+
+    // Extract from layers
+    project.layers.forEach((layer) => {
+      if (layer.element.style.fill && layer.element.style.fill !== 'none') {
+        colors.add(layer.element.style.fill);
+      }
+      if (layer.element.style.stroke && layer.element.style.stroke !== 'none') {
+        colors.add(layer.element.style.stroke);
+      }
+    });
+
+    // Extract from keyframes
+    project.keyframes.forEach((kf) => {
+      if (
+        (kf.property === 'fill' || kf.property === 'stroke') &&
+        typeof kf.value === 'string' &&
+        kf.value !== 'none'
+      ) {
+        colors.add(kf.value);
+      }
+    });
+
+    return Array.from(colors);
+  }, [project?.layers, project?.keyframes]);
 
   // Update position values based on current time and keyframes
   useEffect(() => {
@@ -542,26 +572,15 @@ export function PropertyEditor() {
 
       <div className="property-editor-section">
         <h4>Appearance</h4>
+
         <div className="property-row">
           <label htmlFor="fill">Fill</label>
-          <input
-            id="fill"
-            type="color"
-            value={fill === 'none' ? '#000000' : fill}
-            onChange={(e) => handleFillChange(e.target.value)}
-            disabled={fill === 'none'}
+          <ColorPicker
+            value={fill}
+            onChange={handleFillChange}
+            projectColors={projectColors}
+            label="Fill"
           />
-          <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
-            {fill}
-          </span>
-          {fill === 'none' && (
-            <button
-              onClick={() => handleFillChange('#000000')}
-              style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 6px' }}
-            >
-              Enable
-            </button>
-          )}
           <button
             onClick={() => handleAddKeyframe('fill', fill)}
             aria-label={`Add keyframe for fill`}
@@ -574,24 +593,12 @@ export function PropertyEditor() {
 
         <div className="property-row">
           <label htmlFor="stroke">Stroke</label>
-          <input
-            id="stroke"
-            type="color"
-            value={stroke === 'none' ? '#000000' : stroke}
-            onChange={(e) => handleStrokeChange(e.target.value)}
-            disabled={stroke === 'none'}
+          <ColorPicker
+            value={stroke}
+            onChange={handleStrokeChange}
+            projectColors={projectColors}
+            label="Stroke"
           />
-          <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
-            {stroke}
-          </span>
-          {stroke === 'none' && (
-            <button
-              onClick={() => handleStrokeChange('#000000')}
-              style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 6px' }}
-            >
-              Enable
-            </button>
-          )}
           <button
             onClick={() => handleAddKeyframe('stroke', stroke)}
             aria-label={`Add keyframe for stroke`}
