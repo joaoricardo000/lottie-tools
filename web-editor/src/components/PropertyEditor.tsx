@@ -150,6 +150,14 @@ export function PropertyEditor() {
       },
     });
 
+    // Auto-update keyframe if one exists at current time
+    const property: AnimatableProperty = axis;
+    const keyframes = getKeyframesForLayer(selectedLayer.id, property);
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, property, value, existingKeyframe.easing);
+    }
+
     // Update local state
     if (axis === 'x') {
       setPositionX(value);
@@ -184,6 +192,13 @@ export function PropertyEditor() {
       },
     });
 
+    // Auto-update keyframe if one exists at current time
+    const keyframes = getKeyframesForLayer(selectedLayer.id, 'rotation');
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, 'rotation', value, existingKeyframe.easing);
+    }
+
     setRotation(value);
   };
 
@@ -212,6 +227,13 @@ export function PropertyEditor() {
         layers: updatedLayers,
       },
     });
+
+    // Auto-update keyframe if one exists at current time
+    const keyframes = getKeyframesForLayer(selectedLayer.id, axis);
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, axis, value, existingKeyframe.easing);
+    }
 
     if (axis === 'scaleX') {
       setScaleX(value);
@@ -249,6 +271,13 @@ export function PropertyEditor() {
       },
     });
 
+    // Auto-update keyframe if one exists at current time
+    const keyframes = getKeyframesForLayer(selectedLayer.id, 'opacity');
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, 'opacity', decimalValue, existingKeyframe.easing);
+    }
+
     setOpacity(percentageValue);
   };
 
@@ -277,6 +306,13 @@ export function PropertyEditor() {
         layers: updatedLayers,
       },
     });
+
+    // Auto-update keyframe if one exists at current time
+    const keyframes = getKeyframesForLayer(selectedLayer.id, 'fill');
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, 'fill', color, existingKeyframe.easing);
+    }
 
     setFill(color);
   };
@@ -307,6 +343,13 @@ export function PropertyEditor() {
       },
     });
 
+    // Auto-update keyframe if one exists at current time
+    const keyframes = getKeyframesForLayer(selectedLayer.id, 'stroke');
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, 'stroke', color, existingKeyframe.easing);
+    }
+
     setStroke(color);
   };
 
@@ -335,6 +378,13 @@ export function PropertyEditor() {
         layers: updatedLayers,
       },
     });
+
+    // Auto-update keyframe if one exists at current time
+    const keyframes = getKeyframesForLayer(selectedLayer.id, 'strokeWidth');
+    const existingKeyframe = keyframes.find(kf => kf.time === project.currentTime);
+    if (existingKeyframe) {
+      addKeyframe(selectedLayer.id, 'strokeWidth', width, existingKeyframe.easing);
+    }
 
     setStrokeWidth(width);
   };

@@ -132,9 +132,10 @@ export const useStore = create<Store>((set) => ({
 
       let keyframes;
       if (existingIndex >= 0) {
-        // Update existing keyframe
+        // Update existing keyframe - preserve layerId
+        const existingKeyframe = state.project.keyframes[existingIndex];
         keyframes = state.project.keyframes.map((kf, i) =>
-          i === existingIndex ? { ...newKeyframe, id: kf.id } : kf
+          i === existingIndex ? { ...newKeyframe, id: kf.id, layerId: (existingKeyframe as any).layerId } : kf
         );
       } else {
         // Add new keyframe with layerId

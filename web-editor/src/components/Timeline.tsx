@@ -63,10 +63,17 @@ export function Timeline() {
   }, [project?.currentTime, project?.isPlaying]);
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
+    if (!project) return;
+
+    const rawTime = parseFloat(e.target.value);
+    // Snap to nearest frame
+    const frameDuration = 1 / project.fps;
+    const frameNumber = Math.round(rawTime / frameDuration);
+    const snappedTime = frameNumber * frameDuration;
+
+    setCurrentTime(snappedTime);
     if (engineRef.current) {
-      engineRef.current.seek(newTime);
+      engineRef.current.seek(snappedTime);
     }
   };
 
@@ -342,7 +349,7 @@ export function Timeline() {
           type="range"
           min="0"
           max={project?.duration || 5}
-          step="0.01"
+          step={project ? 1 / project.fps : 0.01}
           value={project?.currentTime || 0}
           onChange={handleTimeChange}
           className="timeline-slider"
