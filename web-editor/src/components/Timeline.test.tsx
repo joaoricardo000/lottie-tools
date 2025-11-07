@@ -467,10 +467,13 @@ describe('Timeline', () => {
       render(<Timeline />);
       const slider = screen.getByRole('slider') as HTMLInputElement;
 
-      // Test decimal values
+      // Test decimal values with frame snapping (fps = 30, frameDuration = 1/30)
+      // 2.75 seconds: frameNumber = round(2.75 / (1/30)) = round(82.5) = 83, snapped = 83 * (1/30) ≈ 2.7666...
       fireEvent.change(slider, { target: { value: '2.75' } });
-      expect(useStore.getState().project?.currentTime).toBe(2.75);
+      const time1 = useStore.getState().project?.currentTime;
+      expect(time1).toBeCloseTo(2.7666666, 5); // Account for frame snapping
 
+      // 0.5 seconds: frameNumber = round(0.5 / (1/30)) = round(15) = 15, snapped = 15 * (1/30) = 0.5
       fireEvent.change(slider, { target: { value: '0.5' } });
       expect(useStore.getState().project?.currentTime).toBe(0.5);
     });

@@ -20,7 +20,7 @@ describe('Toolbar', () => {
 
   it('should render Export button', () => {
     render(<Toolbar />);
-    expect(screen.getByText('Export')).toBeInTheDocument();
+    expect(screen.getByText('Export to Lottie')).toBeInTheDocument();
   });
 
   it('should have correct CSS class', () => {
