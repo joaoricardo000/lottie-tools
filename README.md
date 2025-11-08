@@ -20,11 +20,12 @@ An open-source web-based animation editor for creating and editing Lottie animat
 - 🎨 **Color Animation** - Smooth RGB interpolation for fill and stroke colors
 - 📊 **Property Tracks** - Expandable timeline tracks showing keyframes per property
 - 💾 **Lottie Export** - Export animations as standard Lottie JSON format
+- 🔄 **Lottie Import** - Import and edit existing Lottie JSON files with full round-trip support
+- 📈 **Custom Bezier Curves** - Visual bezier curve editor for custom easing with draggable control points
 - 👁️ **Live Preview** - Real-time canvas preview with smooth interpolated animations
-- 🧪 **Test Coverage** - 278 tests passing with comprehensive TDD approach
+- 🧪 **Test Coverage** - 384 tests passing with comprehensive TDD approach
 
 #### 🚧 In Progress:
-- 🔄 **Lottie Import** - Import existing Lottie files for editing (Milestone 7)
 - 🎨 **Advanced Features** - Text layers, gradients, masks
 - 📦 **lottie-web Integration** - Preview with official Lottie player
 
@@ -103,12 +104,12 @@ See [lottie-to-gif/README.md](lottie-to-gif/README.md) for full CLI documentatio
 - [x] **Milestone 4**: Keyframe creation & basic animation (position interpolation)
 - [x] **Milestone 5**: Multi-property animation (scale, rotation, opacity, colors, easing)
 - [x] **Milestone 6**: Lottie JSON export (TypeScript types, property/shape converters, download)
-- [ ] **Milestone 7**: Lottie JSON import and round-trip editing
+- [x] **Milestone 7**: Lottie JSON import and round-trip editing (with custom bezier curves!)
 - [ ] **Milestone 8**: Preview integration with lottie-web
 - [ ] **Milestone 9**: Project save/load & state management
 - [ ] **Milestone 10**: UI/UX polish and documentation
 
-**Current Status**: ✅ Milestone 6 Complete - Lottie JSON export fully functional!
+**Current Status**: ✅ Milestone 7 Complete - Full Lottie import/export with custom bezier curve editor!
 
 ### Post-MVP Features
 - [ ] Text layer support (v1.1)
