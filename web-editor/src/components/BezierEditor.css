@@ -1,0 +1,74 @@
+.bezier-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #404040;
+  border-radius: 4px;
+}
+
+.bezier-canvas {
+  background: #222;
+  border-radius: 4px;
+  display: block;
+  user-select: none;
+}
+
+.bezier-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bezier-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bezier-input-group label {
+  color: #999;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bezier-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bezier-input-row span {
+  color: #999;
+  font-size: 0.875rem;
+  min-width: 16px;
+}
+
+.bezier-input-row input[type='number'] {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  background: #2a2a2a;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.bezier-input-row input[type='number']:focus {
+  outline: none;
+  border-color: #4a9eff;
+}
+
+/* Hide spinner arrows in number inputs */
+.bezier-input-row input[type='number']::-webkit-inner-spin-button,
+.bezier-input-row input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.bezier-input-row input[type='number'] {
+  -moz-appearance: textfield;
+}

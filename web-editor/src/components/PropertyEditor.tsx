@@ -2,9 +2,10 @@ import { useEffect, useState, useMemo } from 'react';
 import './PropertyEditor.css';
 import { useStore } from '../store/useStore';
 import { getValueAtTime, getColorAtTime } from '../engine/Interpolation';
-import type { AnimatableProperty } from '../models/Keyframe';
+import type { AnimatableProperty, BezierTangents } from '../models/Keyframe';
 import { ProjectSettingsPanel } from './ProjectSettingsPanel';
 import { ColorPicker } from './ColorPicker';
+import { BezierEditor } from './BezierEditor';
 
 export function PropertyEditor() {
   const project = useStore((state) => state.project);
@@ -21,6 +22,10 @@ export function PropertyEditor() {
   const [stroke, setStroke] = useState('#000000');
   const [strokeWidth, setStrokeWidth] = useState(1);
   const [selectedEasing, setSelectedEasing] = useState<string>('linear');
+  const [customBezier, setCustomBezier] = useState<BezierTangents>({
+    o: { x: [0.42], y: [0] },
+    i: { x: [0.58], y: [1] },
+  });
 
   const selectedLayer = project?.layers.find(
     (layer) => layer.id === project.selectedLayerId
@@ -421,8 +426,44 @@ export function PropertyEditor() {
   };
 
   const handleAddKeyframe = (property: AnimatableProperty, value: number | string) => {
-    if (!selectedLayer) return;
-    addKeyframe(selectedLayer.id, property, value, selectedEasing);
+    if (!selectedLayer || !project) return;
+
+    // Create keyframe with easing
+    const newKeyframe: any = {
+      id: `kf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      time: project.currentTime,
+      property,
+      value,
+      easing: selectedEasing,
+      layerId: selectedLayer.id,
+    };
+
+    // Add bezier tangents if custom easing
+    if (selectedEasing === 'custom') {
+      newKeyframe.easingBezier = customBezier;
+    }
+
+    // Check if a keyframe already exists at this time for this layer/property
+    const keyframes = getKeyframesForLayer(selectedLayer.id, property);
+    const existingKeyframeIndex = keyframes.findIndex(kf => kf.time === project.currentTime);
+
+    let updatedKeyframes;
+    if (existingKeyframeIndex >= 0) {
+      // Update existing keyframe
+      updatedKeyframes = project.keyframes.map((kf) =>
+        kf.id === keyframes[existingKeyframeIndex].id ? newKeyframe : kf
+      );
+    } else {
+      // Add new keyframe
+      updatedKeyframes = [...project.keyframes, newKeyframe];
+    }
+
+    useStore.setState({
+      project: {
+        ...project,
+        keyframes: updatedKeyframes,
+      },
+    });
   };
 
   const hasKeyframeAtCurrentTime = (property: AnimatableProperty): boolean => {
@@ -465,11 +506,18 @@ export function PropertyEditor() {
             <option value="easeOut">Ease Out</option>
             <option value="easeInOut">Ease In-Out</option>
             <option value="hold">Hold</option>
+            <option value="custom">Custom</option>
           </select>
           <span style={{ marginLeft: '8px', fontSize: '12px', color: '#888' }}>
             For new keyframes
           </span>
         </div>
+
+        {selectedEasing === 'custom' && (
+          <div style={{ marginTop: '0.75rem' }}>
+            <BezierEditor value={customBezier} onChange={setCustomBezier} />
+          </div>
+        )}
       </div>
 
       <div className="property-editor-section">

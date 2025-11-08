@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import './Timeline.css';
 import { useStore } from '../store/useStore';
 import { PlaybackEngine } from '../engine/PlaybackEngine';
-import type { AnimatableProperty } from '../models/Keyframe';
+import type { AnimatableProperty, BezierTangents, Keyframe } from '../models/Keyframe';
+import { BezierEditor } from './BezierEditor';
 
 export function Timeline() {
   const project = useStore((state) => state.project);
@@ -19,6 +20,7 @@ export function Timeline() {
 
   const [collapsedLayers, setCollapsedLayers] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ keyframeId: string; x: number; y: number } | null>(null);
+  const [bezierDialog, setBezierDialog] = useState<{ keyframeId: string; bezier: BezierTangents } | null>(null);
   const engineRef = useRef<PlaybackEngine | null>(null);
   const tracksRef = useRef<HTMLDivElement>(null);
 
@@ -279,6 +281,39 @@ export function Timeline() {
     }
   };
 
+  // Helper: Open custom bezier editor
+  const handleCustomEasing = () => {
+    if (!contextMenu || !project) return;
+
+    // Find the keyframe
+    const keyframe = project.keyframes.find(kf => kf.id === contextMenu.keyframeId);
+    if (!keyframe) return;
+
+    // Get existing bezier or use default
+    const bezier: BezierTangents = (keyframe as any).easingBezier || {
+      o: { x: [0.42], y: [0] },
+      i: { x: [0.58], y: [1] },
+    };
+
+    setBezierDialog({
+      keyframeId: contextMenu.keyframeId,
+      bezier,
+    });
+    setContextMenu(null);
+  };
+
+  // Helper: Confirm custom bezier changes
+  const handleBezierConfirm = () => {
+    if (!bezierDialog) return;
+
+    updateKeyframe(bezierDialog.keyframeId, {
+      easing: 'custom',
+      easingBezier: bezierDialog.bezier,
+    } as any);
+
+    setBezierDialog(null);
+  };
+
   // Close context menu when clicking outside
   useEffect(() => {
     const handleClick = () => setContextMenu(null);
@@ -302,6 +337,8 @@ export function Timeline() {
         return '#9c27b0';
       case 'hold':
         return '#f44336';
+      case 'custom':
+        return '#e91e63'; // Pink for custom bezier
       case 'linear':
       default:
         return '#2196f3';
@@ -619,6 +656,31 @@ export function Timeline() {
             <span className="timeline-context-menu-swatch" style={{ background: getEasingColor('hold') }} />
             Hold
           </button>
+          <button onClick={handleCustomEasing}>
+            <span className="timeline-context-menu-swatch" style={{ background: getEasingColor('custom') }} />
+            Custom...
+          </button>
+        </div>
+      )}
+
+      {/* Custom Bezier Editor Dialog */}
+      {bezierDialog && (
+        <div className="modal-overlay" onClick={() => setBezierDialog(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Custom Easing Curve</h3>
+            <BezierEditor
+              value={bezierDialog.bezier}
+              onChange={(bezier) =>
+                setBezierDialog({ ...bezierDialog, bezier })
+              }
+            />
+            <div className="modal-actions">
+              <button onClick={() => setBezierDialog(null)}>Cancel</button>
+              <button onClick={handleBezierConfirm} className="primary">
+                Apply
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
