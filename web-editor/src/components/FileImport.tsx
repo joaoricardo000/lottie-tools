@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { parseSVG } from '../parsers/svg-parser';
+import { LottieImporter } from '../import/LottieImporter';
 import { useStore } from '../store/useStore';
 import { toast } from 'sonner';
 import './FileImport.css';
@@ -36,64 +37,102 @@ export function FileImport() {
       // Read file content
       const content = await readFileAsText(file);
 
-      // Parse SVG with filename as group name (without extension)
-      const groupName = file.name.replace(/\.[^/.]+$/, '');
-      const parseResult = parseSVG(content, groupName);
+      // Detect file type
+      const isJSON = file.name.endsWith('.json') || content.trim().startsWith('{');
 
-      if (!parseResult.success) {
-        setMessage({
-          type: 'error',
-          text: `Failed to import SVG: ${parseResult.error}`,
-        });
-        setIsProcessing(false);
-        return;
-      }
+      if (isJSON) {
+        // Import Lottie JSON
+        const lottieJson = JSON.parse(content);
+        const importResult = LottieImporter.importFromLottie(lottieJson);
 
-      if (parseResult.layers.length === 0) {
-        setMessage({
-          type: 'error',
-          text: 'No elements found in SVG',
-        });
-        setIsProcessing(false);
-        return;
-      }
+        if (!importResult.success) {
+          setMessage({
+            type: 'error',
+            text: `Failed to import Lottie: ${importResult.error}`,
+          });
+          setIsProcessing(false);
+          return;
+        }
 
-      // Create or update project
-      if (project) {
-        // Merge with existing project, updating dimensions if available
-        setProject({
-          ...project,
-          width: parseResult.width || project.width,
-          height: parseResult.height || project.height,
-          layers: [...project.layers, ...parseResult.layers],
-        });
+        // Replace project with imported Lottie
+        setProject(importResult.project!);
+
+        // Show warnings if any
+        if (importResult.warnings && importResult.warnings.length > 0) {
+          importResult.warnings.forEach((warning) => {
+            toast.warning(warning);
+          });
+        }
+
+        // Show success toast
+        toast.success(
+          `Successfully imported Lottie animation with ${importResult.project!.layers.length} layer${
+            importResult.project!.layers.length === 1 ? '' : 's'
+          }`
+        );
+        setMessage(null);
       } else {
-        // Create new project
-        setProject({
-          name: file.name,
-          width: parseResult.width || 800,
-          height: parseResult.height || 600,
-          fps: 30,
-          duration: 3,
-          currentTime: 0,
-          isPlaying: false,
-          layers: parseResult.layers,
-          selectedLayerId: undefined,
-          keyframes: [],
-        });
-      }
+        // Import SVG
+        const groupName = file.name.replace(/\.[^/.]+$/, '');
+        const parseResult = parseSVG(content, groupName);
 
-      // Show success toast
-      toast.success(
-        `Successfully imported ${parseResult.layers.length} layer${
-          parseResult.layers.length === 1 ? '' : 's'
-        }`
-      );
-      setMessage(null);
+        if (!parseResult.success) {
+          setMessage({
+            type: 'error',
+            text: `Failed to import SVG: ${parseResult.error}`,
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        if (parseResult.layers.length === 0) {
+          setMessage({
+            type: 'error',
+            text: 'No elements found in SVG',
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        // Create or update project
+        if (project) {
+          // Merge with existing project, updating dimensions if available
+          setProject({
+            ...project,
+            width: parseResult.width || project.width,
+            height: parseResult.height || project.height,
+            layers: [...project.layers, ...parseResult.layers],
+          });
+        } else {
+          // Create new project
+          setProject({
+            name: file.name,
+            width: parseResult.width || 800,
+            height: parseResult.height || 600,
+            fps: 30,
+            duration: 3,
+            currentTime: 0,
+            isPlaying: false,
+            layers: parseResult.layers,
+            selectedLayerId: undefined,
+            selectedLayerIds: [],
+            keyframes: [],
+            loop: false,
+          });
+        }
+
+        // Show success toast
+        toast.success(
+          `Successfully imported ${parseResult.layers.length} layer${
+            parseResult.layers.length === 1 ? '' : 's'
+          }`
+        );
+        setMessage(null);
+      }
     } catch (error) {
       setMessage({
         type: 'error',
-        text: 'Failed to read file',
+        text: error instanceof Error ? error.message : 'Failed to read file',
       });
     } finally {
       setIsProcessing(false);
@@ -109,17 +148,17 @@ export function FileImport() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".svg,image/svg+xml"
+        accept=".svg,.json,image/svg+xml,application/json"
         onChange={handleFileChange}
-        aria-label="Import SVG"
+        aria-label="Import SVG or Lottie"
         style={{ display: 'none' }}
       />
       <button
         onClick={handleButtonClick}
         disabled={isProcessing}
-        aria-label="Import SVG"
+        aria-label="Import SVG or Lottie"
       >
-        Import SVG
+        Import
       </button>
 
       {message && (

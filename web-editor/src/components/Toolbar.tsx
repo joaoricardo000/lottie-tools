@@ -70,7 +70,6 @@ export function Toolbar() {
         <div className="toolbar-actions">
           <button onClick={handleNewProject}>New Project</button>
           <FileImport />
-          <button disabled>Import Lottie</button>
           <button onClick={handleExport} disabled={!project || project.layers.length === 0}>
             Export to Lottie
           </button>

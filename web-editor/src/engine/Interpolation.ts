@@ -1,4 +1,5 @@
 import type { Keyframe, KeyframeValue } from '../models/Keyframe';
+import { BezierSolver } from './BezierSolver';
 
 /**
  * Linear interpolation between two values
@@ -70,10 +71,38 @@ export function applyEasing(t: number, easing: string): number {
     case 'hold':
       // Step-end: holds the old value until the keyframe time, then instantly jumps
       return t >= 1 ? 1 : 0;
+    case 'custom':
+      // Custom bezier - needs keyframe data, fall back to linear
+      return Math.max(0, Math.min(1, t));
     case 'linear':
     default:
       return Math.max(0, Math.min(1, t));
   }
+}
+
+/**
+ * Apply easing function from a keyframe to interpolation factor
+ * Supports custom bezier curves via keyframe.easingBezier
+ * @param t - Interpolation factor (0-1)
+ * @param keyframe - Keyframe containing easing information
+ * @returns Eased interpolation factor (typically 0-1, but can overshoot with custom bezier)
+ */
+export function applyEasingFromKeyframe(t: number, keyframe: Keyframe): number {
+  // Handle custom bezier easing
+  if (keyframe.easing === 'custom' && keyframe.easingBezier) {
+    const tangents = keyframe.easingBezier;
+    // Use first value from arrays (support for per-dimension easing)
+    const ox = tangents.o.x[0] ?? 0;
+    const oy = tangents.o.y[0] ?? 0;
+    const ix = tangents.i.x[0] ?? 1;
+    const iy = tangents.i.y[0] ?? 1;
+
+    // Evaluate bezier curve: x-axis controls time (input), y-axis controls value (output)
+    return BezierSolver.easeBezier(t, 0, ox, ix, 1, 0, oy, iy, 1);
+  }
+
+  // Fall back to preset easing functions
+  return applyEasing(t, keyframe.easing);
 }
 
 /**
@@ -251,8 +280,8 @@ export function interpolateKeyframes(
   const elapsed = time - keyframe1.time;
   const t = duration > 0 ? elapsed / duration : 0;
 
-  // Apply easing function from keyframe
-  const easedT = applyEasing(t, keyframe1.easing);
+  // Apply easing function from keyframe (supports custom bezier)
+  const easedT = applyEasingFromKeyframe(t, keyframe1);
 
   return interpolateLinear(value1, value2, easedT);
 }
@@ -340,8 +369,8 @@ export function getColorAtTime(keyframes: Keyframe[], time: number): string {
     const elapsed = time - bounds.before.time;
     const t = duration > 0 ? elapsed / duration : 0;
 
-    // Apply easing function from keyframe
-    const easedT = applyEasing(t, bounds.before.easing);
+    // Apply easing function from keyframe (supports custom bezier)
+    const easedT = applyEasingFromKeyframe(t, bounds.before);
 
     return interpolateColor(color1, color2, easedT);
   }

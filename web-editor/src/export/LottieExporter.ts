@@ -19,13 +19,35 @@ import { svgPathToLottiePath } from '../utils/svg-to-lottie-path';
 
 export class LottieExporter {
   /**
-   * Convert easing string to Lottie bezier tangents
+   * Convert easing to Lottie bezier tangents
+   * Supports both preset easing strings and custom bezier curves
    * Returns easing handles in Lottie format with x and y arrays
    */
-  private static getEasingTangents(easing: string): {
+  private static getEasingTangents(
+    easingOrKeyframe: string | Keyframe | undefined
+  ): {
     i: { x: number[]; y: number[] };
     o: { x: number[]; y: number[] };
   } {
+    // If it's a keyframe with custom bezier, use that
+    if (
+      typeof easingOrKeyframe === 'object' &&
+      easingOrKeyframe !== null &&
+      'easing' in easingOrKeyframe &&
+      easingOrKeyframe.easing === 'custom' &&
+      easingOrKeyframe.easingBezier
+    ) {
+      return easingOrKeyframe.easingBezier;
+    }
+
+    // Extract easing string
+    const easing =
+      typeof easingOrKeyframe === 'string'
+        ? easingOrKeyframe
+        : typeof easingOrKeyframe === 'object' && easingOrKeyframe !== null
+        ? easingOrKeyframe.easing
+        : 'linear';
+
     // Normalize easing string
     const normalizedEasing = easing.toLowerCase().replace(/-/g, '');
 
@@ -59,6 +81,13 @@ export class LottieExporter {
         return {
           o: { x: [0.333, 0.333], y: [0, 0] },
           i: { x: [0.667, 0.667], y: [1, 1] },
+        };
+
+      case 'custom':
+        // Custom without bezier data, fall back to linear
+        return {
+          o: { x: [0, 0], y: [0, 0] },
+          i: { x: [1, 1], y: [1, 1] },
         };
 
       default:
@@ -211,7 +240,8 @@ export class LottieExporter {
       const yValue = yKf ? (typeof yKf.value === 'number' ? yKf.value : defaultY) : defaultY;
 
       // Get easing from first keyframe that has one
-      const easing = (xKf?.easing || yKf?.easing || 'linear');
+      const easingKeyframe = xKf || yKf;
+      const easing = easingKeyframe?.easing || 'linear';
 
       const keyframe: LottieKeyframe = {
         t: Math.round(time * fps),  // Convert seconds to frames
@@ -224,7 +254,7 @@ export class LottieExporter {
         keyframe.h = 1;
       } else {
         // Normal keyframes have easing tangents and end values
-        const tangents = this.getEasingTangents(easing);
+        const tangents = this.getEasingTangents(easingKeyframe);
 
         // Add end value for interpolation (if not last keyframe)
         if (index < sortedTimes.length - 1) {
@@ -279,7 +309,8 @@ export class LottieExporter {
       const xValue = xKf ? (typeof xKf.value === 'number' ? xKf.value : defaultScaleX) : defaultScaleX;
       const yValue = yKf ? (typeof yKf.value === 'number' ? yKf.value : defaultScaleY) : defaultScaleY;
 
-      const easing = (xKf?.easing || yKf?.easing || 'linear');
+      const easingKeyframe = xKf || yKf;
+      const easing = easingKeyframe?.easing || 'linear';
 
       const keyframe: LottieKeyframe = {
         t: Math.round(time * fps),
@@ -290,7 +321,7 @@ export class LottieExporter {
       if (easing === 'hold') {
         keyframe.h = 1;
       } else {
-        const tangents = this.getEasingTangents(easing);
+        const tangents = this.getEasingTangents(easingKeyframe);
 
         // Add end value for interpolation
         if (index < sortedTimes.length - 1) {
@@ -338,7 +369,7 @@ export class LottieExporter {
       if (easing === 'hold') {
         keyframe.h = 1;
       } else {
-        const tangents = this.getEasingTangents(easing);
+        const tangents = this.getEasingTangents(kf);
 
         // Add end value
         if (index < rotationKfs.length - 1) {
@@ -384,7 +415,7 @@ export class LottieExporter {
       if (easing === 'hold') {
         keyframe.h = 1;
       } else {
-        const tangents = this.getEasingTangents(easing);
+        const tangents = this.getEasingTangents(kf);
 
         // Add end value
         if (index < opacityKfs.length - 1) {
@@ -438,7 +469,7 @@ export class LottieExporter {
         keyframe.h = 1;
       } else if (index < colorKfs.length - 1) {
         // Add easing handles to all non-hold, non-last keyframes
-        const tangents = this.getEasingTangents(easing);
+        const tangents = this.getEasingTangents(kf);
         keyframe.o = tangents.o;
         keyframe.i = tangents.i;
       }
@@ -476,7 +507,7 @@ export class LottieExporter {
       if (easing === 'hold') {
         keyframe.h = 1;
       } else {
-        const tangents = this.getEasingTangents(easing);
+        const tangents = this.getEasingTangents(kf);
 
         // Add end value
         if (index < numericKfs.length - 1) {
